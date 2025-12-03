@@ -23,8 +23,14 @@ def main():
         print(f"{{ '{k}': {v}}}")
 
     starting_plan, unassigned_groups = init_sol(student_dict, subject_dict, lecturer_dict)
+
+    print("\n\n")
+
     for k, v in starting_plan.items():
         print(f"{{ '{k}': {v}}}")
+
+    print("\n\n")
+    
     print(unassigned_groups)
     return
 
