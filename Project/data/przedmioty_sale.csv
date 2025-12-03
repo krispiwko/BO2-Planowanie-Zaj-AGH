@@ -5,6 +5,8 @@ mo_lab;B1-317c;
 mo_aud;B1-010,B1-012,B5-210;
 tm_wyklad;HB1B2-H24,B1-121,C2-429,C2-224;
 tm_lab;B1-315a;
+ts1_wyklad;HB1B2-H24,B1-121,C2-429,C2-224;
+ts1_aud;B5-110;
 kipr_wyklad;HB1B2-H24,B1-121,C2-429,C2-224;
 kipr_lab;C3-1;
 bo2_wyklad;HB1B2-H24,B1-121,C2-429,C2-224;
