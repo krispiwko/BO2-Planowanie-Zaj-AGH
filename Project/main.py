@@ -4,33 +4,16 @@
 from read_data import *
 from init_sol import *
 from write_load_csv import *
+from optimize_sol import *
 
 def main():
-    student_dict = get_student_dict()
-    subject_dict = get_subject_dict()
-    lecturer_dict = get_lecturer_dict()
+    data = create_data()
+    print_data(data)
 
-    for k,v in subject_dict.items():
-        print(f"{{ '{k}': {v}}}")
-
+    starting_plan, unassigned_groups = init_sol(data)
     print("\n\n")
-
-    for k,v in student_dict.items():
-        print(f"{{ '{k}': {v}}}")
-
-    print("\n\n")
-
-    for k,v in lecturer_dict.items():
-        print(f"{{ '{k}': {v}}}")
-
-    starting_plan, unassigned_groups = init_sol(student_dict, subject_dict, lecturer_dict)
-
-    print("\n\n")
-
-    for k, v in starting_plan.items():
-        print(f"{{ '{k}': {v}}}")
-
-    print("\n\n")
+    print("STARTING_PLAN")
+    print_dict(starting_plan)
 
     print(unassigned_groups)
 
@@ -40,12 +23,7 @@ def main():
 
     loaded_plan = load_plan_from_csv()
 
-    print("\n\n")
-
-    for k, v in loaded_plan.items():
-        print(f"{{ '{k}': {v}}}")
-
-    print("\n\n")
+    print_dict(loaded_plan)
 
     identical = True
     for group in starting_plan.keys():
@@ -53,6 +31,9 @@ def main():
             identical = False
             print(starting_plan[group], loaded_plan[group])
     print(identical)
+
+    print("\n\n")
+    print(goal_function(starting_plan, unassigned_groups, data))
     return
 
 if __name__ == "__main__":

@@ -123,3 +123,48 @@ def get_lecturer_dict():
 
     return output
 
+def initialize_additional_dicts(student_dict, subject_dict):
+    other_student_groups_in_group = {group: set() for group in subject_dict.keys()}
+    for student in list(student_dict.keys()):
+        for student_group in student_dict[student]:
+            for other_student_group in student_dict[student]:
+                if other_student_group == student_group:
+                    continue
+                other_student_groups_in_group[student_group].add(other_student_group)
+    # print(other_student_groups_in_group)
+    rooms_set = set()
+    for group in subject_dict.keys():
+        for room in subject_dict[group][1]:
+            rooms_set.add(room)
+    groups_that_use_room = {room: set() for room in rooms_set}
+    for room in rooms_set:
+        for group in subject_dict.keys():
+            if room in subject_dict[group][1]:
+                groups_that_use_room[room].add(group)
+    # print(groups_that_use_room)
+    return other_student_groups_in_group, groups_that_use_room
+
+def create_data():
+    student_dict = get_student_dict()
+    subject_dict = get_subject_dict()
+    lecturer_dict = get_lecturer_dict()
+    other_student_groups, room_groups = initialize_additional_dicts(student_dict,subject_dict)
+    data = {"student_dict":student_dict,
+            "subject_dict":subject_dict,
+            "lecturer_dict":lecturer_dict,
+            "other_student_groups":other_student_groups,
+            "room_groups":room_groups}
+    return data
+
+def print_dict(dictionary):
+    print()
+    for k, v in dictionary.items():
+        print(f"{{ '{k}': {v}}}")
+
+def print_data(data):
+    for key in data.keys():
+        print()
+        print(key)
+        if type(data[key]) == dict:
+            print_dict(data[key])
+
