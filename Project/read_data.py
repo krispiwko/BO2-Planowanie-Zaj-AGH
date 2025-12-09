@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+from enums import DataEnum
 
 INDEX_TIME = 0
 INDEX_ROOMS = 1
@@ -149,11 +150,11 @@ def create_data():
     subject_dict = get_subject_dict()
     lecturer_dict = get_lecturer_dict()
     other_student_groups, room_groups = initialize_additional_dicts(student_dict,subject_dict)
-    data = {"student_dict":student_dict,
-            "subject_dict":subject_dict,
-            "lecturer_dict":lecturer_dict,
-            "other_student_groups":other_student_groups,
-            "room_groups":room_groups}
+    data = {DataEnum.STUDENT_DICT:student_dict,
+            DataEnum.SUBJECT_DICT:subject_dict,
+            DataEnum.LECTURER_DICT:lecturer_dict,
+            DataEnum.OTHER_STUDENT_GROUPS:other_student_groups,
+            DataEnum.ROOM_GROUPS:room_groups}
     return data
 
 def print_dict(dictionary):

@@ -33,8 +33,17 @@ def main():
     print(identical)
 
     print("\n\n")
-    print(goal_function(starting_plan, unassigned_groups, data))
+    goal_fun_sum, marked_groups = goal_function(starting_plan, unassigned_groups, data)
+
+    print("STARTOWA WARTOŚĆ FUNKCJI CELU:")
+    print(goal_fun_sum)
+
+    opt_plan, opt_unassigned_groups, opt_goal_function = optimize_sol(starting_plan, unassigned_groups, data)
+
+    print("KOŃCOWA WARTOŚĆ FUNKCJI CELU:")
+    print(opt_goal_function)
     return
+
 
 if __name__ == "__main__":
     main()
