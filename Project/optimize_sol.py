@@ -66,7 +66,7 @@ def goal_function(plan, unassigned_groups, data):
                     marked_groups[MarkEnum.WINDOW][lecturer] += [chronological_groups[i - 1], chronological_groups[i]]
     return fun_sum, marked_groups
 
-def change_plan(plan, unassigned_groups, marked_groups, data):
+def change_plan(plan, unassigned_groups, marked_groups, data, change_max_time = True, change_window = True):
 
     #   Sytuacja: za dużo godzin w jednym dniu dla konkretnego studenta
     #   Jak naprawić? Przestawić na inny dzień, na którym ma mało zajęć
@@ -77,97 +77,114 @@ def change_plan(plan, unassigned_groups, marked_groups, data):
     # Ile zmian zrobić? -> najlepiej rozważyć każdy przedmiot, który został odnotowany
     # w marked_groups[MarkEnum.MAX_TIME]
     unmarked_group = []
-    for student in [x for x in data[DataEnum.STUDENT_DICT].keys() if marked_groups[MarkEnum.MAX_TIME][x] != [[], [], [], [], []]]:
-        for day in range(5):
-            for group in marked_groups[MarkEnum.MAX_TIME][student][day]:
-                if group in unmarked_group:
-                    marked_groups[MarkEnum.MAX_TIME][student][day].remove(group)
-        class_time_in_day = {day: 0 for day in range(5)}
-        for group in [group for group in data[DataEnum.STUDENT_DICT][student]]:
-            day = plan[group][1]
-            class_time_in_day[day] += data[DataEnum.SUBJECT_DICT][group][0]
-        overloaded_days = [day for day in range(5) if class_time_in_day[day] > coeffs_students["max_time_in_one_day"]]
-        free_days = [day for day in range(5) if class_time_in_day[day] + 90 < coeffs_students["max_time_in_one_day"]]
-        while len(free_days) != 0 and len(overloaded_days) != 0:
-            for day in overloaded_days:
-                marked_groups[MarkEnum.MAX_TIME][student][day] = sorted(marked_groups[MarkEnum.MAX_TIME][student][day], key=lambda x: data[DataEnum.SUBJECT_DICT][x][0], reverse=True)
-                while len(marked_groups[MarkEnum.MAX_TIME][student][day]) != 0:
-                    group_to_move = marked_groups[MarkEnum.MAX_TIME][student][day].pop()
-                    for free_day in free_days:
-                        if_out_of_time = False
-                        if class_time_in_day[free_day] + data[DataEnum.SUBJECT_DICT][group_to_move][0] > coeffs_students["max_time_in_one_day"]:
-                            free_days.remove(free_day)
-                            continue
-                        else:
-                            group_not_assigned = True
-                            curr_time = 0
-                            while group_not_assigned:
-                                group_not_assigned, remembered_room = try_to_insert_group(data, group_to_move, plan, curr_time, free_day)
-                                if group_not_assigned:
-                                    if_out_of_time, curr_time, free_day = modify_time_and_day(data, group_to_move, curr_time, free_day, change_day = False)
-                                    if if_out_of_time:
-                                        break
-                                else:
-                                    plan[group_to_move][0] = curr_time
-                                    plan[group_to_move][1] = free_day
-                                    plan[group_to_move][2] = remembered_room
-                                    unmarked_group.append(group_to_move)
-                                    class_time_in_day[free_day] += data[DataEnum.SUBJECT_DICT][group_to_move][0]
-                                    class_time_in_day[day] -= data[DataEnum.SUBJECT_DICT][group_to_move][0]
-                        if if_out_of_time:
-                            continue
-                else:
-                    if len(free_days) != 0:
-                        overloaded_days.remove(day)
-    for lecturer in [x for x in data[DataEnum.LECTURER_DICT].keys() if
-                    marked_groups[MarkEnum.MAX_TIME][x] != [[], [], [], [], []]]:
-        for day in range(5):
-            for group in marked_groups[MarkEnum.MAX_TIME][lecturer][day]:
-                if group in unmarked_group:
-                    marked_groups[MarkEnum.MAX_TIME][lecturer][day].remove(group)
-        class_time_in_day = {day: 0 for day in range(5)}
-        for group in [group for group in data[DataEnum.LECTURER_DICT][lecturer]]:
-            day = plan[group][1]
-            class_time_in_day[day] += data[DataEnum.SUBJECT_DICT][group][0]
-        overloaded_days = [day for day in range(5) if class_time_in_day[day] > coeffs_students["max_time_in_one_day"]]
-        free_days = [day for day in range(5) if class_time_in_day[day] + 90 < coeffs_students["max_time_in_one_day"]]
-        while len(free_days) != 0 and len(overloaded_days) != 0:
-            for day in overloaded_days:
-                marked_groups[MarkEnum.MAX_TIME][lecturer][day] = sorted(marked_groups[MarkEnum.MAX_TIME][lecturer][day],
-                                                                        key=lambda x: data[DataEnum.SUBJECT_DICT][x][0],
-                                                                        reverse=True)
-                while len(marked_groups[MarkEnum.MAX_TIME][lecturer][day]) != 0:
-                    group_to_move = marked_groups[MarkEnum.MAX_TIME][lecturer][day].pop()
-                    for free_day in free_days:
-                        if_out_of_time = False
-                        if class_time_in_day[free_day] + data[DataEnum.SUBJECT_DICT][group_to_move][0] > \
-                                coeffs_students["max_time_in_one_day"]:
-                            free_days.remove(free_day)
-                            continue
-                        else:
-                            group_not_assigned = True
-                            curr_time = 0
-                            while group_not_assigned:
-                                group_not_assigned, remembered_room = try_to_insert_group(data, group_to_move, plan,
-                                                                                          curr_time, free_day)
-                                if group_not_assigned:
-                                    if_out_of_time, curr_time, free_day = modify_time_and_day(data, group_to_move,
-                                                                                              curr_time, free_day,
-                                                                                              change_day=False)
-                                    if if_out_of_time:
-                                        break
-                                else:
-                                    plan[group_to_move][0] = curr_time
-                                    plan[group_to_move][1] = free_day
-                                    plan[group_to_move][2] = remembered_room
-                                    unmarked_group.append(group_to_move)
-                                    class_time_in_day[free_day] += data[DataEnum.SUBJECT_DICT][group_to_move][0]
-                                    class_time_in_day[day] -= data[DataEnum.SUBJECT_DICT][group_to_move][0]
-                        if if_out_of_time:
-                            continue
-                else:
-                    if len(free_days) != 0:
-                        overloaded_days.remove(day)
+    if change_max_time:
+        for student in [x for x in data[DataEnum.STUDENT_DICT].keys() if marked_groups[MarkEnum.MAX_TIME][x] != [[], [], [], [], []]]:
+            for day in range(5):
+                for group in marked_groups[MarkEnum.MAX_TIME][student][day]:
+                    if group in unmarked_group:
+                        marked_groups[MarkEnum.MAX_TIME][student][day].remove(group)
+            class_time_in_day = {day: 0 for day in range(5)}
+            for group in [group for group in data[DataEnum.STUDENT_DICT][student]]:
+                day = plan[group][1]
+                class_time_in_day[day] += data[DataEnum.SUBJECT_DICT][group][0]
+            overloaded_days = [day for day in range(5) if class_time_in_day[day] > coeffs_students["max_time_in_one_day"]]
+            free_days = [day for day in range(5) if class_time_in_day[day] + 90 < coeffs_students["max_time_in_one_day"]]
+            while len(free_days) != 0 and len(overloaded_days) != 0:
+                for day in overloaded_days:
+                    marked_groups[MarkEnum.MAX_TIME][student][day] = sorted(marked_groups[MarkEnum.MAX_TIME][student][day], key=lambda x: data[DataEnum.SUBJECT_DICT][x][0], reverse=True)
+                    while len(marked_groups[MarkEnum.MAX_TIME][student][day]) != 0:
+                        group_to_move = marked_groups[MarkEnum.MAX_TIME][student][day].pop()
+                        for free_day in free_days:
+                            if_out_of_time = False
+                            if class_time_in_day[free_day] + data[DataEnum.SUBJECT_DICT][group_to_move][0] > coeffs_students["max_time_in_one_day"]:
+                                free_days.remove(free_day)
+                                continue
+                            else:
+                                group_not_assigned = True
+                                curr_time = 0
+                                while group_not_assigned:
+                                    group_not_assigned, remembered_room = try_to_insert_group(data, group_to_move, plan, curr_time, free_day)
+                                    if group_not_assigned:
+                                        if_out_of_time, curr_time, free_day = modify_time_and_day(data, group_to_move, curr_time, free_day, change_day = False)
+                                        if if_out_of_time:
+                                            break
+                                    else:
+                                        plan[group_to_move][0] = curr_time
+                                        plan[group_to_move][1] = free_day
+                                        plan[group_to_move][2] = remembered_room
+                                        unmarked_group.append(group_to_move)
+                                        class_time_in_day[free_day] += data[DataEnum.SUBJECT_DICT][group_to_move][0]
+                                        class_time_in_day[day] -= data[DataEnum.SUBJECT_DICT][group_to_move][0]
+                            if if_out_of_time:
+                                continue
+                    else:
+                        if len(free_days) != 0:
+                            overloaded_days.remove(day)
+        for lecturer in [x for x in data[DataEnum.LECTURER_DICT].keys() if
+                        marked_groups[MarkEnum.MAX_TIME][x] != [[], [], [], [], []]]:
+            for day in range(5):
+                for group in marked_groups[MarkEnum.MAX_TIME][lecturer][day]:
+                    if group in unmarked_group:
+                        marked_groups[MarkEnum.MAX_TIME][lecturer][day].remove(group)
+            class_time_in_day = {day: 0 for day in range(5)}
+            for group in [group for group in data[DataEnum.LECTURER_DICT][lecturer]]:
+                day = plan[group][1]
+                class_time_in_day[day] += data[DataEnum.SUBJECT_DICT][group][0]
+            overloaded_days = [day for day in range(5) if class_time_in_day[day] > coeffs_students["max_time_in_one_day"]]
+            free_days = [day for day in range(5) if class_time_in_day[day] + 90 < coeffs_students["max_time_in_one_day"]]
+            while len(free_days) != 0 and len(overloaded_days) != 0:
+                for day in overloaded_days:
+                    marked_groups[MarkEnum.MAX_TIME][lecturer][day] = sorted(marked_groups[MarkEnum.MAX_TIME][lecturer][day],
+                                                                            key=lambda x: data[DataEnum.SUBJECT_DICT][x][0],
+                                                                            reverse=True)
+                    while len(marked_groups[MarkEnum.MAX_TIME][lecturer][day]) != 0:
+                        group_to_move = marked_groups[MarkEnum.MAX_TIME][lecturer][day].pop()
+                        for free_day in free_days:
+                            if_out_of_time = False
+                            if class_time_in_day[free_day] + data[DataEnum.SUBJECT_DICT][group_to_move][0] > \
+                                    coeffs_students["max_time_in_one_day"]:
+                                free_days.remove(free_day)
+                                continue
+                            else:
+                                group_not_assigned = True
+                                curr_time = 0
+                                while group_not_assigned:
+                                    group_not_assigned, remembered_room = try_to_insert_group(data, group_to_move, plan,
+                                                                                              curr_time, free_day)
+                                    if group_not_assigned:
+                                        if_out_of_time, curr_time, free_day = modify_time_and_day(data, group_to_move,
+                                                                                                  curr_time, free_day,
+                                                                                                  change_day=False)
+                                        if if_out_of_time:
+                                            break
+                                    else:
+                                        plan[group_to_move][0] = curr_time
+                                        plan[group_to_move][1] = free_day
+                                        plan[group_to_move][2] = remembered_room
+                                        unmarked_group.append(group_to_move)
+                                        class_time_in_day[free_day] += data[DataEnum.SUBJECT_DICT][group_to_move][0]
+                                        class_time_in_day[day] -= data[DataEnum.SUBJECT_DICT][group_to_move][0]
+                            if if_out_of_time:
+                                continue
+                    else:
+                        if len(free_days) != 0:
+                            overloaded_days.remove(day)
+    if change_window:
+        pass
+
+    for unassigned_group in unassigned_groups:
+        group_not_assigned = True
+        curr_time = 0  # 8.00 rano
+        day_of_week = 0  # Poniedziałek, 4 oznacza Piątek
+        while group_not_assigned:
+            group_not_assigned, remembered_room = try_to_insert_group(data, unassigned_group, plan, curr_time, day_of_week)
+            if group_not_assigned:
+                if_out_of_time, curr_time, day_of_week = modify_time_and_day(data, unassigned_group, curr_time, day_of_week)
+            else:
+                plan[unassigned_group][0] = curr_time
+                plan[unassigned_group][1] = day_of_week
+                plan[unassigned_group][2] = remembered_room
+
     return plan, unassigned_groups
 
 def optimize_sol(plan, unassigned_groups, data):
