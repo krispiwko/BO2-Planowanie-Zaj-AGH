@@ -1,5 +1,25 @@
-Do zrobienia:
+Problemy z różnymi typami zajęć:
 
- - Struktury Danych - Trzeba ubrać tę rozpiskę planu w excelu w słowniki w Pythongu
- - Studentów trzeba zrobić dość dużo - tak, aby przynajmniej do każdej grupy było przypisane kilku studentów z różnymi obierakami (ale może na razie nie róbmy ich 120...)
- - Prowadzących na razie przypiszemy do ćwiczeń tylko z planu AiR - czyli mają chill (oprócz Latochy xD)
+ - wf - nie ma przerw!
+ - niektóre ćwiczenia co 2 tygodnie...
+ - niektóre ćwiczenia tylko przez połowę roku
+ - co z lektoratami?
+
+Problemy z prowadzącymi:
+
+ - nie są w ogóle obciążeni - trzeba dodatkowe ograniczenia!
+ - może zrobić dni, w które są dostępni?
+
+Zrobić: Mamy 14 tygodni w planie -> przypisać przedmioty do tygodni?
+	Dodać przerwy między zajęciami?
+	Dodać dni, w które dostępni są prowadzący?
+
+
+Przedmioty problematyczne:
+AIR SEM 1
+ - Eksploracja Danych (co 2 tyg)
+ - Konstrukcja 3D z rysunkiem technicznym (co 2 tyg)
+ - WF (brak przerw)
+AIR SEM 3
+ - Mechanika (co 2 tyg)
+ - WF (brak przerw, tylko przez pół roku)
