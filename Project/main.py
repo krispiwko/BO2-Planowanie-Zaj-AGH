@@ -21,16 +21,16 @@ def main():
 
     write_plan_to_csv(starting_plan)
 
-    loaded_plan = load_plan_from_csv()
+    # loaded_plan = load_plan_from_csv()
+    #
+    # print_dict(loaded_plan)
 
-    print_dict(loaded_plan)
-
-    identical = True
-    for group in starting_plan.keys():
-        if starting_plan[group] != loaded_plan[group]:
-            identical = False
-            print(starting_plan[group], loaded_plan[group])
-    print(identical)
+    # identical = True
+    # for group in starting_plan.keys():
+    #     if starting_plan[group] != loaded_plan[group]:
+    #         identical = False
+    #         print(starting_plan[group], loaded_plan[group])
+    #print(identical)
 
     print("\n\n")
     goal_fun_sum, marked_groups = goal_function(starting_plan, unassigned_groups, data)
@@ -39,7 +39,10 @@ def main():
     print(goal_fun_sum)
 
     opt_plan, opt_unassigned_groups, opt_goal_function = optimize_sol(starting_plan, unassigned_groups, data)
-
+    print("\n\n")
+    print_dict(opt_plan)
+    print(opt_unassigned_groups)
+    print("\n\n")
     print("KOŃCOWA WARTOŚĆ FUNKCJI CELU:")
     print(opt_goal_function)
     return

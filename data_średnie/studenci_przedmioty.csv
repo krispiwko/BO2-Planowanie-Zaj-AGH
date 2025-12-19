@@ -1,28 +1,3 @@
-algebra_wyklad;90;
-algebra_aud;90;
-algebra_wyklad;90;
-algebra_aud;90;
-analiza_wyklad_1;90;
-analiza_aud_1;90;
-analiza_wyklad_2;90;
-analiza_aud_2;90;
-fizyka1_wyklad;135;
-fizyka1_aud;90;
-wpro_do_air;90;
-wstep_do_info_wyklad;90;
-wstep_do_info_lab;90;
-metody_numeryczne_wyklad;90;
-metody_numeryczne_lab;90;
-msd_wyklad;90;
-msd_lab;90;
-podstawy_automatyki1_wyklad;90;
-podstawy_automatyki1_aud;90;
-psc_wyklad;90;
-psc_lab;90;
-systemy_pomiarowe_wyklad;90;
-systemy_pomiarowe_lab;90;
-zpo_wyklad;90;
-zpo_lab;90;
 
 student1;aa_wyklad,aa_lab,mo_wyklad,mo_lab,mo_aud,ts1_wyklad,ts1_aud,tm_wyklad,tm_lab,kipr_wyklad,kipr_lab,bo2_wyklad,bo2_lab,ipt_wyklad,ipt_lab;5
 student2;aa_wyklad,aa_lab,mo_wyklad,mo_lab,mo_aud,ts1_wyklad,ts1_aud,tm_wyklad,tm_lab,kipr_wyklad,kipr_lab,bo2_wyklad,bo2_lab,swd_wyklad,swd_lab;1
@@ -44,3 +19,5 @@ student17;aa_wyklad,aa_lab,mo_wyklad,mo_lab,mo_aud,ts1_wyklad,ts1_aud,tm_wyklad,
 student18;aa_wyklad,aa_lab,mo_wyklad,mo_lab,mo_aud,ts1_wyklad,ts1_aud,tm_wyklad,tm_lab,ipt_wyklad,ipt_lab,swd_wyklad,swd_lab,aibd_wyklad,aibd_lab;0
 student19;aa_wyklad,aa_lab,mo_wyklad,mo_lab,mo_aud,ts1_wyklad,ts1_aud,tm_wyklad,tm_lab,ipt_wyklad,ipt_lab,kic_wyklad,kic_lab,aibd_wyklad,aibd_lab;6
 student20;aa_wyklad,aa_lab,mo_wyklad,mo_lab,mo_aud,ts1_wyklad,ts1_aud,tm_wyklad,tm_lab,swd_wyklad,swd_lab,kic_wyklad,kic_lab,aibd_wyklad,aibd_lab;2
+student21;algebra_wyklad,algebra_aud,algebra_wyklad,algebra_aud,analiza_wyklad_1,analiza_aud_1,analiza_wyklad_2,analiza_aud_2,fizyka1_wyklad,fizyka1_aud,wpro_do_air,wstep_do_info_wyklad,wstep_do_info_lab;132
+student22;metody_numeryczne_wyklad,metody_numeryczne_lab,msd_wyklad,msd_lab,podstawy_automatyki1_wyklad,podstawy_automatyki1_aud,psc_wyklad,psc_lab,systemy_pomiarowe_wyklad,systemy_pomiarowe_lab,zpo_wyklad,zpo_lab;132

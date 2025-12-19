@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+from copy import deepcopy
 from random import random
 from enums import *
 import numpy as np
@@ -84,7 +85,7 @@ def change_plan(plan, unassigned_groups, marked_groups, data, change_max_time = 
                     if group in unmarked_group:
                         marked_groups[MarkEnum.MAX_TIME][student][day].remove(group)
             class_time_in_day = {day: 0 for day in range(5)}
-            for group in [group for group in data[DataEnum.STUDENT_DICT][student]]:
+            for group in [group for group in data[DataEnum.STUDENT_DICT][student] if not np.isnan(plan[group][0])]:
                 day = plan[group][1]
                 class_time_in_day[day] += data[DataEnum.SUBJECT_DICT][group][0]
             overloaded_days = [day for day in range(5) if class_time_in_day[day] > coeffs_students["max_time_in_one_day"]]
@@ -127,7 +128,7 @@ def change_plan(plan, unassigned_groups, marked_groups, data, change_max_time = 
                     if group in unmarked_group:
                         marked_groups[MarkEnum.MAX_TIME][lecturer][day].remove(group)
             class_time_in_day = {day: 0 for day in range(5)}
-            for group in [group for group in data[DataEnum.LECTURER_DICT][lecturer]]:
+            for group in [group for group in data[DataEnum.LECTURER_DICT][lecturer] if not np.isnan(plan[group][0])]:
                 day = plan[group][1]
                 class_time_in_day[day] += data[DataEnum.SUBJECT_DICT][group][0]
             overloaded_days = [day for day in range(5) if class_time_in_day[day] > coeffs_students["max_time_in_one_day"]]
@@ -180,10 +181,13 @@ def change_plan(plan, unassigned_groups, marked_groups, data, change_max_time = 
             group_not_assigned, remembered_room = try_to_insert_group(data, unassigned_group, plan, curr_time, day_of_week)
             if group_not_assigned:
                 if_out_of_time, curr_time, day_of_week = modify_time_and_day(data, unassigned_group, curr_time, day_of_week)
+                if if_out_of_time:
+                    break
             else:
                 plan[unassigned_group][0] = curr_time
                 plan[unassigned_group][1] = day_of_week
                 plan[unassigned_group][2] = remembered_room
+                unassigned_groups.remove(unassigned_group)
 
     return plan, unassigned_groups
 
