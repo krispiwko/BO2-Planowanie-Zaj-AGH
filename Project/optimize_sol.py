@@ -265,6 +265,6 @@ class OptimazeSol(object):
         return self.best_plan, self.best_unassigned_groups
 
 
-
+opt_instance = OptimazeSol()
 
 

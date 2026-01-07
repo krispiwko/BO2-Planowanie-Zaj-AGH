@@ -7,6 +7,7 @@ import enums
 import threading
 import optimize_sol
 from imgui.integrations.glfw import GlfwRenderer
+from optimize_sol import opt_instance
 from tkinter import Tk
 from tkinter.filedialog import askdirectory
 
@@ -53,12 +54,14 @@ class GUI(object):
         self.data_folder = r"data"
         self.best_val = 0
 
-        self.optimalization_instance = None
-
         style = imgui.get_style()
         style.colors[imgui.COLOR_BUTTON] = [0.26/2, 0.59/2, 0.98/2, 1.0]
 
         self.opt_step = False
+        self.is_running = False
+        self.plan = None
+        self.unassigned_groups = None
+        self.algorytm_thread = None
 
         self.loop()
 
@@ -102,14 +105,12 @@ class GUI(object):
                     self.plan, self.unassigned_groups = calc_plan.prepare_plan()
 
                     self.is_running = True
-                    opt = optimize_sol.OptimazeSol()
-                    opt.setup(self.plan, self.unassigned_groups, calc_plan.get_data())
-                    self.optimalization_instance = opt
+                    opt_instance.setup(self.plan, self.unassigned_groups, calc_plan.get_data())
 
                     if self.opt_step:
                         self.calc_plan_for_student()
                     else:
-                        t = threading.Thread(target=opt.run, daemon=True)
+                        t = threading.Thread(target=opt_instance.run, daemon=True)
                         self.algorytm_thread = t
                         t.start()
 
@@ -120,7 +121,7 @@ class GUI(object):
 
             elif self.opt_step:
                 if imgui.button("Step"):
-                    should_continue, self.plan, self.unassigned_groups = self.optimalization_instance.step()
+                    should_continue, self.plan, self.unassigned_groups = opt_instance.step()
                     self.calc_plan_for_student()
                     if not should_continue:
                         self.is_running = False
@@ -131,7 +132,7 @@ class GUI(object):
             if self.is_running and self.algorytm_thread != None and not self.algorytm_thread.is_alive():
                 self.is_running = False
                 self.algorytm_thread = None
-                self.plan, self.unassigned_groups = self.optimalization_instance.get_result()
+                self.plan, self.unassigned_groups = opt_instance.get_result()
 
                 self.calc_plan_for_student()
             
