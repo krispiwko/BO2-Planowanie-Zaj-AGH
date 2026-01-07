@@ -78,6 +78,7 @@ def init_sol(data):
                 if_out_of_time, curr_time, day_of_week = modify_time_and_day(data, group, curr_time, day_of_week)
                 if if_out_of_time:
                     unassigned_groups.append(group)
+                    break
             else:
                 plan[group][0] = curr_time
                 plan[group][1] = day_of_week

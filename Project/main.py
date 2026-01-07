@@ -52,16 +52,6 @@ class GUI(object):
 
         self.data_folder = r"data"
         self.best_val = 0
-        self.plan = None
-        self.unassigned_groups = None
-        self.marked_groups = None
-        self.current_select = 0
-        self.total_cols = 1.0
-        self.columns_per_day = [0,0,0,0,0]
-        self.algorytm_thread = None
-        self.is_running = False
-
-        self.category = 0
 
         self.optimalization_instance = None
 

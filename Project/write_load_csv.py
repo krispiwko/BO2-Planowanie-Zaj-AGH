@@ -9,8 +9,8 @@ def write_plan_to_csv(inserted_plan):
     csv_filename = "plan.csv"
 
     # Converting nested values to a string
-    for group in list(plan.keys()):
-        for i in range(0, 2):
+    for group in plan.keys():
+        for i in range(3):
             plan[group][i] = str(plan[group][i])
         plan[group] = ', '.join(plan[group])
 
