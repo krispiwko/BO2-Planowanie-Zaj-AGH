@@ -65,6 +65,10 @@ class GUI(object):
         self.unassigned_groups = None
         self.algorytm_thread = None
 
+        io = imgui.get_io()
+        self.font = io.fonts.add_font_from_file_ttf("font.ttf", 20, None, io.fonts.get_glyph_ranges_latin())
+        self.impl.refresh_font_texture()
+
         self.loop()
 
     def print_params(self):
@@ -80,6 +84,7 @@ class GUI(object):
             glfw.poll_events()
             self.impl.process_inputs()
             imgui.new_frame()
+            imgui.push_font(self.font)
 
             io = imgui.get_io()
             display_w, display_h = io.display_size
@@ -192,6 +197,7 @@ class GUI(object):
                     imgui.text(text)
                 self.render_grid()
                     
+            imgui.pop_font()
 
             imgui.end()
 
