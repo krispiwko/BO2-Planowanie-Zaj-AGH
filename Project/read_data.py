@@ -2,17 +2,27 @@
 # -*- coding: utf-8 -*-
 
 import os
+import random
 from enums import DataEnum
 
 INDEX_TIME = 0
 INDEX_ROOMS = 1
 INDEX_LECTURER = 2
 
+data_folder = ".\\data\\"
+
+def set_data_folder(path):
+    global data_folder
+    data_folder = path
+
 def get_student_dict():
+    random.seed(67)
     output_temp = {}
     output = {}
 
-    with open(".\\data\\studenci_przedmioty.csv", "rt") as f:
+    csv_path = os.path.join(data_folder, "studenci_przedmioty.csv")
+
+    with open(csv_path, "rt") as f:
         lines = f.readlines()
         student_index = 0
         for l in lines:
@@ -24,6 +34,15 @@ def get_student_dict():
             for i in range(student_count):
                 output_temp[f"student_{student_index}"] = student_subjects
                 student_index += 1
+
+    temp_list_students = list(output_temp.keys())
+    temp_list_subjects = [v for k,v in output_temp.items()]
+    random.shuffle(temp_list_subjects)
+
+    output_temp = {}
+    for i, student in enumerate(temp_list_students):
+        output_temp[student] = temp_list_subjects[i]
+        
 
     group_student_count = {}
     for k, v in output_temp.items():
@@ -50,11 +69,14 @@ def get_student_dict():
             group_student_count[sub] += 1
         output[student] = new_sub_array
 
+    print(output)
+
     return output
 
 def get_subject_time():
     output = {}
-    with open(".\\data\\przedmioty_czas_trwania.csv", "rt") as f:
+    csv_path = os.path.join(data_folder, "przedmioty_czas_trwania.csv")
+    with open(csv_path, "rt") as f:
         lines = f.readlines()
         for l in lines:
             split = l.split(';')
@@ -64,7 +86,8 @@ def get_subject_time():
 
 def get_subject_rooms():
     output = {}
-    with open(".\\data\\przedmioty_sale.csv", "rt") as f:
+    csv_path = os.path.join(data_folder, "przedmioty_sale.csv")
+    with open(csv_path, "rt") as f:
         lines = f.readlines()
         for l in lines:
             split = l.split(';')
@@ -75,7 +98,8 @@ def get_subject_rooms():
 def get_subject_lecturer():
     output = {}
     group_counts = {}
-    with open(".\\data\\przedmioty_prowadzacy.csv", "rt") as f:
+    csv_path = os.path.join(data_folder, "przedmioty_prowadzacy.csv")
+    with open(csv_path, "rt") as f:
         lines = f.readlines()
         for l in lines:
             split = l.split(';')
@@ -158,11 +182,13 @@ def create_data():
     return data
 
 def print_dict(dictionary):
+    return 
     print()
     for k, v in dictionary.items():
         print(f"{{ '{k}': {v}}}")
 
 def print_data(data):
+    return
     for key in data.keys():
         print()
         print(key)

@@ -1,2 +1,6 @@
 Project/.idea
 /Project/__pycache__
+/Project/.venv
+Project/imgui.ini
+Project/pyrightconfig.json
+Project/plan.csv

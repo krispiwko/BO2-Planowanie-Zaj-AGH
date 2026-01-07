@@ -85,6 +85,8 @@ def change_plan(plan, unassigned_groups, marked_groups, data, change_max_time = 
                         marked_groups[MarkEnum.MAX_TIME][student][day].remove(group)
             class_time_in_day = {day: 0 for day in range(5)}
             for group in [group for group in data[DataEnum.STUDENT_DICT][student]]:
+                if group in unassigned_groups:
+                    continue
                 day = plan[group][1]
                 class_time_in_day[day] += data[DataEnum.SUBJECT_DICT][group][0]
             overloaded_days = [day for day in range(5) if class_time_in_day[day] > coeffs_students["max_time_in_one_day"]]
@@ -187,31 +189,79 @@ def change_plan(plan, unassigned_groups, marked_groups, data, change_max_time = 
 
     return plan, unassigned_groups
 
-def optimize_sol(plan, unassigned_groups, data):
-    T = 500
-    alpha = 0.999
-    T_eps = 0.01
-    max_iter = 1000
-    iter = 0
-    goal_sum, marked_groups = goal_function(plan, unassigned_groups, data)
-    best_plan = plan
-    best_unassigned_groups = unassigned_groups
-    best_goal_sum = goal_sum
-    while iter < max_iter and T > T_eps:
-        new_plan, new_unassigned_groups = change_plan(plan, unassigned_groups, marked_groups, data)
-        new_goal_sum, marked_groups = goal_function(new_plan, new_unassigned_groups, data)
-        delta = new_goal_sum - goal_sum
-        if new_goal_sum < best_goal_sum:
-            best_plan = new_plan
-            best_unassigned_groups = new_unassigned_groups
-            best_goal_sum = new_goal_sum
-        if random() < np.exp(-delta / T):
-            plan = new_plan
-            unassigned_groups = new_unassigned_groups
-            goal_sum = new_goal_sum
-        T *= alpha
-        iter += 1
-    return best_plan, best_unassigned_groups, best_goal_sum
+class OptimazeSol(object):
+    def __init__(self):
+        self.T = 500
+        self.data = None
+        self.alpha = 0.999
+        self.T_eps = 0.01
+        self.max_iter = 1000
+        self.iter = 0
+        self.best_plan = None
+        self.best_unassigned_groups = None
+        self.best_goal_sum = None
+
+        self.cur_plan = None
+        self.cur_unassigned_groups = None
+        self.cur_goal_func = None
+    
+    def setup(self, plan, unassigned_groups, data):
+        self.best_plan = plan
+        self.best_unassigned_groups = unassigned_groups
+
+        self.cur_plan = plan
+        self.cur_unassigned_groups = unassigned_groups
+
+        self.data = data
+        self.T = 5000
+        self.alpha = 0.999
+        self.T_eps = 0.01
+        self.max_iter = 1000
+        self.iter = 0
+        self.cur_goal_sum, self.cur_marked_groups = goal_function(self.best_plan, self.cur_unassigned_groups, self.data)
+        self.best_goal_sum = self.cur_goal_sum
+
+    def step(self):
+        new_plan, new_unassigned_groups = change_plan(self.cur_plan, self.cur_unassigned_groups, self.cur_marked_groups, self.data)
+        new_goal_sum, self.cur_marked_groups = goal_function(new_plan, new_unassigned_groups, self.data)
+        delta = new_goal_sum - self.cur_goal_sum
+
+        random_value = random()
+        print(delta, random_value, np.exp(-delta/ self.T), self.cur_marked_groups)
+
+        if new_goal_sum < self.best_goal_sum:
+            self.best_plan = new_plan
+            self.best_unassigned_groups = new_unassigned_groups
+            self.best_goal_sum = new_goal_sum
+
+            self.cur_plan = new_plan
+            self.cur_unassigned_groups = new_unassigned_groups
+            self.cur_goal_sum = new_goal_sum
+
+        elif random_value < np.exp(-delta / self.T):
+            print("Assigning new plan from random")
+            self.cur_plan = new_plan
+            self.cur_unassigned_groups = new_unassigned_groups
+            self.cur_goal_sum = new_goal_sum
+
+        self.T *= self.alpha
+        self.iter += 1
+        print(self.T)
+
+        if self.iter >= self.max_iter:
+            return False, self.cur_plan, self.cur_unassigned_groups
+        return True, self.cur_plan, self.cur_unassigned_groups
+
+    def run(self):
+        should_continue = True
+        while should_continue:
+            should_continue, _6, _7 = self.step()
+
+        return self.best_plan, self.best_unassigned_groups
+
+    def get_result(self):
+        return self.best_plan, self.best_unassigned_groups
+
 
 
 

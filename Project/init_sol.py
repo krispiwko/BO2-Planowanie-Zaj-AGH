@@ -69,6 +69,10 @@ def init_sol(data):
         curr_time = 0  # 8.00 rano
         day_of_week = 0  # Poniedziałek, 4 oznacza Piątek
         while group_not_assigned:
+            if day_of_week > 4:
+                unassigned_groups.append(group)
+                break
+
             group_not_assigned, remembered_room = try_to_insert_group(data, group, plan, curr_time, day_of_week)
             if group_not_assigned:
                 if_out_of_time, curr_time, day_of_week = modify_time_and_day(data, group, curr_time, day_of_week)
