@@ -57,6 +57,8 @@ class GUI(object):
         style = imgui.get_style()
         style.colors[imgui.COLOR_BUTTON] = [0.26/2, 0.59/2, 0.98/2, 1.0]
 
+        self.hide_preview = True
+
         self.opt_step = False
         self.is_running = False
         self.plan = None
@@ -64,6 +66,14 @@ class GUI(object):
         self.algorytm_thread = None
 
         self.loop()
+
+    def print_params(self):
+        if imgui.collapsing_header("Parametry", None)[0]:
+            _, opt_instance.start_T = imgui.input_float('Temperatura', opt_instance.start_T)
+            _, opt_instance.alpha = imgui.input_float('Współczynnik chłodzienia', opt_instance.alpha)
+            _, opt_instance.max_iter = imgui.input_int('Maksymalna liczba iteracji', opt_instance.max_iter)
+
+        return
 
     def loop(self):
         while not glfw.window_should_close(self.window):
@@ -89,17 +99,20 @@ class GUI(object):
             imgui.same_line()   
             _, self.data_folder = imgui.input_text("", self.data_folder)
             imgui.same_line()
-            if imgui.button("Change"):
-                path = askdirectory(title="Select Folder")
+            if imgui.button("Zmień"):
+                path = askdirectory(title="Wybierz Folder")
                 if path != None and path != "":
                     self.data_folder = path
 
                     calc_plan.invalidate_data()
                     read_data.set_data_folder = self.data_folder
 
+            imgui.separator()
+
 
             if not self.is_running:
-                if imgui.button("Calculate Plan"):
+                self.print_params()
+                if imgui.button("Oblicz plan"):
                     self.category = 0
                     self.current_select = 0
                     self.plan, self.unassigned_groups = calc_plan.prepare_plan()
@@ -115,28 +128,33 @@ class GUI(object):
                         t.start()
 
                 imgui.same_line()
-                _, self.opt_step = imgui.checkbox("Step through", self.opt_step)
+                _, self.opt_step = imgui.checkbox("Krok po kroku", self.opt_step)
             elif self.algorytm_thread != None:
-                imgui.text("Algorythm running...")
+                imgui.text("Algorytm działa...")
 
             elif self.opt_step:
-                if imgui.button("Step"):
+                if imgui.button("Krok"):
                     should_continue, self.plan, self.unassigned_groups = opt_instance.step()
                     self.calc_plan_for_student()
                     if not should_continue:
                         self.is_running = False
                 imgui.same_line()
-                if imgui.button("Stop"):
+                if imgui.button("Zakończ"):
                     self.is_running = False
+
+            if (self.algorytm_thread != None or self.opt_step) and self.is_running:
+                imgui.label_text("##2", f"Temperatura: {opt_instance.T}")
+                self.best_val, _ = optimize_sol.goal_function(self.plan, self.unassigned_groups, calc_plan.get_data())
+                imgui.label_text("##1", f"Wartość funkcji celu: {self.best_val}");
                     
             if self.is_running and self.algorytm_thread != None and not self.algorytm_thread.is_alive():
                 self.is_running = False
                 self.algorytm_thread = None
                 self.plan, self.unassigned_groups = opt_instance.get_result()
+                self.best_val, _ = optimize_sol.goal_function(self.plan, self.unassigned_groups, calc_plan.get_data())
 
                 self.calc_plan_for_student()
             
-            imgui.label_text("##1", f"Best function value: {self.best_val}");
 
             if self.plan != None:
                 _, new_select = imgui.combo("Category", self.category, ["Wszystko", "Studenci", "Prowadzący", "Sale"])
@@ -144,6 +162,9 @@ class GUI(object):
                     self.category = new_select
                     self.current_select = 0
                     self.calc_plan_for_student()
+
+                if not self.is_running:
+                    imgui.label_text("##1", f"Finalna wartość funkcji celu: {self.best_val}");
 
             if self.plan != None and self.category != 0:
                 cur_array = []

@@ -194,10 +194,11 @@ def change_plan(plan, unassigned_groups, marked_groups, data, change_max_time = 
 class OptimazeSol(object):
     def __init__(self):
         self.T = 500
+        self.start_T = 500
         self.data = None
-        self.alpha = 0.999
+        self.alpha = 0.99
         self.T_eps = 0.01
-        self.max_iter = 1000
+        self.max_iter = 100
         self.iter = 0
         self.best_plan = None
         self.best_unassigned_groups = None
@@ -214,11 +215,8 @@ class OptimazeSol(object):
         self.cur_plan = plan
         self.cur_unassigned_groups = unassigned_groups
 
+        self.T = self.start_T
         self.data = data
-        self.T = 5000
-        self.alpha = 0.999
-        self.T_eps = 0.01
-        self.max_iter = 1000
         self.iter = 0
         self.cur_goal_sum, self.cur_marked_groups = goal_function(self.best_plan, self.cur_unassigned_groups, self.data)
         self.best_goal_sum = self.cur_goal_sum
