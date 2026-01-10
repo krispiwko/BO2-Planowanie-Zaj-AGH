@@ -7,6 +7,7 @@ import enums
 import threading
 import optimize_sol
 from imgui.integrations.glfw import GlfwRenderer
+from array import array
 from optimize_sol import opt_instance
 from tkinter import Tk
 from tkinter.filedialog import askdirectory
@@ -57,9 +58,9 @@ class GUI(object):
         style = imgui.get_style()
         style.colors[imgui.COLOR_BUTTON] = [0.26/2, 0.59/2, 0.98/2, 1.0]
 
-        self.hide_preview = True
 
         self.opt_step = False
+        self.show_preview = False
         self.is_running = False
         self.plan = None
         self.unassigned_groups = None
@@ -125,7 +126,10 @@ class GUI(object):
                     self.is_running = True
                     opt_instance.setup(self.plan, self.unassigned_groups, calc_plan.get_data())
 
-                    if self.opt_step:
+                    if not self.show_preview:
+                        self.opt_step = False
+
+                    if self.show_preview:
                         self.calc_plan_for_student()
                     else:
                         t = threading.Thread(target=opt_instance.run, daemon=True)
@@ -133,12 +137,15 @@ class GUI(object):
                         t.start()
 
                 imgui.same_line()
-                _, self.opt_step = imgui.checkbox("Krok po kroku", self.opt_step)
+                _, self.show_preview = imgui.checkbox("Podgląd", self.show_preview)
+                if self.show_preview:
+                    imgui.same_line()
+                    _, self.opt_step = imgui.checkbox("Krok po kroku", self.opt_step)
             elif self.algorytm_thread != None:
                 imgui.text("Algorytm działa...")
 
-            elif self.opt_step:
-                if imgui.button("Krok"):
+            elif self.show_preview:
+                if not self.opt_step or imgui.button("Krok"):
                     should_continue, self.plan, self.unassigned_groups = opt_instance.step()
                     self.calc_plan_for_student()
                     if not should_continue:
@@ -147,7 +154,7 @@ class GUI(object):
                 if imgui.button("Zakończ"):
                     self.is_running = False
 
-            if (self.algorytm_thread != None or self.opt_step) and self.is_running:
+            if (self.algorytm_thread != None or self.show_preview) and self.is_running:
                 imgui.label_text("##2", f"Temperatura: {opt_instance.T}")
                 self.best_val, _ = optimize_sol.goal_function(self.plan, self.unassigned_groups, calc_plan.get_data())
                 imgui.label_text("##1", f"Wartość funkcji celu: {self.best_val}");
@@ -170,6 +177,12 @@ class GUI(object):
 
                 if not self.is_running:
                     imgui.label_text("##1", f"Finalna wartość funkcji celu: {self.best_val}");
+
+                    if imgui.collapsing_header("Wykres", None)[0]:
+                        values = array('f', opt_instance.goal_log)
+                        imgui.plot_lines(label="Funckja celu", values=values, graph_size=(0,100))
+
+
 
             if self.plan != None and self.category != 0:
                 cur_array = []

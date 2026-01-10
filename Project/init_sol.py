@@ -61,6 +61,22 @@ def modify_time_and_day(data, group, curr_time, day_of_week, change_day = True):
             if_out_of_time = True
     return if_out_of_time, curr_time, day_of_week
 
+def init_simple(data):
+    plan = {group: [np.nan, np.nan, np.nan] for group in data[DataEnum.SUBJECT_DICT].keys()}  # Przypisujemy: [godzina, dzień, sala]
+    cur_day = 0
+    cur_slot = 0
+    for group in data[DataEnum.SUBJECT_DICT].keys():
+        plan[group][0] = cur_slot
+        plan[group][1] = cur_day
+        plan[group][2] = data[DataEnum.SUBJECT_DICT][group][1][0]
+
+        cur_slot += 90 + 15
+        if cur_slot >= 720:
+            cur_day = (cur_day + 1) % 5
+            cur_slot = 0
+
+    return plan, []
+
 def init_sol(data):
     plan = {group: [np.nan, np.nan, np.nan] for group in data[DataEnum.SUBJECT_DICT].keys()}  # Przypisujemy: [godzina, dzień, sala]
     unassigned_groups = [] # Ławka rezerwowych

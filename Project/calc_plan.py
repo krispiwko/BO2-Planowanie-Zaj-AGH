@@ -21,11 +21,14 @@ def get_data():
     data = create_data()
     return data
 
-def prepare_plan():
+def prepare_plan(simple=True):
     global data
     get_data()
 
-    starting_plan, unassigned_groups = init_sol(data)
+    if not simple:
+        starting_plan, unassigned_groups = init_sol(data)
+    else:
+        starting_plan, unassigned_groups = init_simple(data)
 
     # write_plan_to_csv(starting_plan)
 

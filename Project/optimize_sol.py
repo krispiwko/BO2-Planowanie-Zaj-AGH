@@ -1,7 +1,9 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 from copy import deepcopy
-from random import random
+from random import randint, random, randrange
+
+from imgui import DATA_TYPE_FLOAT
 from enums import *
 import numpy as np
 from init_sol import try_to_insert_group, modify_time_and_day
@@ -19,6 +21,26 @@ coeffs_lecturers = {
     "min_window_length": 90,
     "window_cost": 2,
 }
+
+
+def get_max_concurrent(data, subjects):
+    subject_data = data[DataEnum.SUBJECT_DICT]
+    points = []
+    for s in subjects:
+        end = s[1] + subject_data[s[0]][0]
+        points.append((s[1], +1))
+        points.append((end, -1))
+
+    points.sort(key=lambda x: (x[0], x[1]))
+
+    current = 0
+    max_overlap = 0
+
+    for _, delta in points:
+        current += delta
+        max_overlap = max(max_overlap, current)
+
+    return max_overlap
 
 def goal_function(plan, unassigned_groups, data):
 
@@ -65,6 +87,8 @@ def goal_function(plan, unassigned_groups, data):
                         "min_window_length"]:
                     fun_sum += coeffs_lecturers["window_cost"]
                     marked_groups[MarkEnum.WINDOW][lecturer] += [chronological_groups[i - 1], chronological_groups[i]]
+
+
     return fun_sum, marked_groups
 
 def change_plan(plan, unassigned_groups, marked_groups, data, change_max_time = True, change_window = True):
@@ -77,6 +101,43 @@ def change_plan(plan, unassigned_groups, marked_groups, data, change_max_time = 
     # O tym zdecyduje FUNKCJA OCENY!!! -> my robimy zmianę na chybił trafił
     # Ile zmian zrobić? -> najlepiej rozważyć każdy przedmiot, który został odnotowany
     # w marked_groups[MarkEnum.MAX_TIME]
+
+## TESTY!!
+    students = data[DataEnum.STUDENT_DICT].keys()
+    students_data = data[DataEnum.STUDENT_DICT]
+    subject_data = data[DataEnum.SUBJECT_DICT]
+    problematic = []
+
+    for i in range(5):
+        for s in students:
+            subjects = [(k,v[0]) for k,v in plan.items() if v[1] == i and k in students_data[s]]
+            subjects.sort(key=lambda x: x[1])
+            latest_end = 0
+            for sub in subjects:
+                start = sub[1]
+                duration = subject_data[sub[0]][0]
+
+                end = start + duration
+
+                if start < latest_end:
+                    if sub[0] not in problematic:
+                        problematic.append(sub[0])
+
+                if end > latest_end:
+                    latest_end = end
+                                    
+
+    index = randrange(len(problematic))
+    p = problematic[index]
+
+    sala = plan[p][2]
+    plan[p] = [randrange(0,720-90,15), randrange(0,5), sala]
+
+
+    return plan, unassigned_groups
+## KONIEC
+
+
     unmarked_group = []
     if change_max_time:
         for student in [x for x in data[DataEnum.STUDENT_DICT].keys() if marked_groups[MarkEnum.MAX_TIME][x] != [[], [], [], [], []]]:
@@ -207,7 +268,10 @@ class OptimazeSol(object):
         self.cur_plan = None
         self.cur_unassigned_groups = None
         self.cur_goal_func = None
-    
+        
+        self.goal_log = []
+
+
     def setup(self, plan, unassigned_groups, data):
         self.best_plan = plan
         self.best_unassigned_groups = unassigned_groups
@@ -220,14 +284,14 @@ class OptimazeSol(object):
         self.iter = 0
         self.cur_goal_sum, self.cur_marked_groups = goal_function(self.best_plan, self.cur_unassigned_groups, self.data)
         self.best_goal_sum = self.cur_goal_sum
+        self.goal_log = []
 
     def step(self):
-        new_plan, new_unassigned_groups = change_plan(self.cur_plan, self.cur_unassigned_groups, self.cur_marked_groups, self.data)
+        new_plan, new_unassigned_groups = change_plan(dict(self.cur_plan), self.cur_unassigned_groups, self.cur_marked_groups, self.data)
         new_goal_sum, self.cur_marked_groups = goal_function(new_plan, new_unassigned_groups, self.data)
         delta = new_goal_sum - self.cur_goal_sum
 
         random_value = random()
-        print(delta, random_value, np.exp(-delta/ self.T), self.cur_marked_groups)
 
         if new_goal_sum < self.best_goal_sum:
             self.best_plan = new_plan
@@ -239,14 +303,13 @@ class OptimazeSol(object):
             self.cur_goal_sum = new_goal_sum
 
         elif random_value < np.exp(-delta / self.T):
-            print("Assigning new plan from random")
             self.cur_plan = new_plan
             self.cur_unassigned_groups = new_unassigned_groups
             self.cur_goal_sum = new_goal_sum
 
         self.T *= self.alpha
         self.iter += 1
-        print(self.T)
+        self.goal_log.append(self.cur_goal_sum)
 
         if self.iter >= self.max_iter:
             return False, self.cur_plan, self.cur_unassigned_groups
