@@ -157,7 +157,7 @@ def goal_function(plan, data, only_collisions=True):
                         fun_sum += coeffs_lecturers["window_cost"]
                         group_costs[GroupCostsEnum.WINDOW][lecturer] += [chronological_groups[i - 1], chronological_groups[i]]
 
-    return fun_sum, group_costs
+    return fun_sum, group_costs, collision_costs
 
 def try_to_change_time_and_day(plan, most_wanted, subject_data, other_groups):
     curr_time = 0
@@ -210,6 +210,9 @@ def change_plan(plan, group_costs, data):
     collision_costs = group_costs[GroupCostsEnum.COLLISION]
     worst_collision_cost = 0
     worst_collision_type = -1
+
+    changed_subject = None
+
     for coll_type in CollisionEnum:
         sub_with_max_cost = max(
             collision_costs.keys(),
@@ -228,6 +231,7 @@ def change_plan(plan, group_costs, data):
                                  )[:3] if collision_costs[x][worst_collision_type] != 0]
 
         most_wanted = choice(bad)
+        changed_subject = most_wanted
         changed = True
         if worst_collision_type == CollisionEnum.STUDENT_COST:
             other_groups = data[DataEnum.OTHER_STUDENT_GROUPS][most_wanted]
@@ -271,11 +275,12 @@ def change_plan(plan, group_costs, data):
                     plan[most_wanted][2] = slot[2]
         if not changed:
             p = choice(list(subject_data.keys()))
-
             sala = plan[p][2]
             plan[p] = [randrange(0, 720 - 90, 15), randrange(0, 5), sala]
 
-    return plan
+            changed_subject = p
+
+    return plan, [changed_subject]
 
 
 class OptimazeSol(object):
@@ -285,13 +290,14 @@ class OptimazeSol(object):
         self.data = None
         self.alpha = 0.99
         self.T_eps = 0.000001
-        self.max_iter = np.inf
+        self.max_iter = 10_000
         self.iter = 0
         self.best_plan = None
         self.best_goal_sum = None
 
         self.cur_plan = None
         self.cur_goal_func = None
+        self.last_changed = []
 
         self.goal_log = []
 
@@ -303,13 +309,13 @@ class OptimazeSol(object):
         self.T = self.start_T
         self.data = data
         self.iter = 0
-        self.cur_goal_sum, self.cur_marked_groups = goal_function(self.best_plan, self.data)
+        self.cur_goal_sum, self.cur_marked_groups, _ = goal_function(self.best_plan, self.data)
         self.best_goal_sum = self.cur_goal_sum
         self.goal_log = []
 
     def step(self):
-        new_plan = change_plan(deepcopy(self.cur_plan), self.cur_marked_groups, self.data)
-        new_goal_sum, self.cur_marked_groups = goal_function(new_plan, self.data)
+        new_plan, self.last_changed = change_plan(deepcopy(self.cur_plan), self.cur_marked_groups, self.data)
+        new_goal_sum, self.cur_marked_groups, _= goal_function(new_plan, self.data)
         delta = new_goal_sum - self.cur_goal_sum
 
         random_value = random()
@@ -324,6 +330,8 @@ class OptimazeSol(object):
         elif random_value < np.exp(-delta / self.T):
             self.cur_plan = new_plan
             self.cur_goal_sum = new_goal_sum
+        else:
+            self.last_changed = []
 
         self.T *= self.alpha
         self.iter += 1

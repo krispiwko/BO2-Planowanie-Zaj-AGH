@@ -40,7 +40,7 @@ def prepare_plan(simple=True):
     for group in starting_plan.keys():
         if starting_plan[group] != loaded_plan[group]:
             identical = False
-    goal_fun_sum, marked_groups = goal_function(starting_plan, data)
+    goal_fun_sum, marked_groups, _ = goal_function(starting_plan, data)
 
     return starting_plan
 
