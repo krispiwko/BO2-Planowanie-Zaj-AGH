@@ -9,7 +9,12 @@ class DataEnum(Enum):
     OTHER_STUDENT_GROUPS = 3
     ROOM_GROUPS = 4
 
-class MarkEnum(Enum):
+class GroupCostsEnum(Enum):
     MAX_TIME = 0
     WINDOW = 1
     COLLISION = 2
+
+class CollisionEnum(Enum):
+    STUDENT_COST = 0
+    LECTURER_COST = 1
+    ROOM_COST = 2
