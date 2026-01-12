@@ -195,9 +195,10 @@ def change_time_and_day(plan, most_wanted, subject_data, other_groups):
     if collision_num is None:
         return False
     if not success:
-        best_slot = min(collision_num.keys(),
-                        key=lambda slot: collision_num[slot])
-
+        slots = sorted(collision_num.keys(),
+                       key=lambda slot: collision_num[slot]
+                       )[:1]
+        best_slot = choice(slots)
         if plan[most_wanted][0] == best_slot[0] and plan[most_wanted][1] == best_slot[1]:
             return False
         plan[most_wanted][0] = best_slot[0]
@@ -219,61 +220,60 @@ def change_plan(plan, group_costs, data):
         if max_cost > worst_collision_cost:
             worst_collision_cost = max_cost
             worst_collision_type = coll_type
-    bad = sorted(
-        collision_costs.keys(),
-        key=lambda s: collision_costs[s][coll_type],
-        reverse=True
-    )[:3]
-
-    most_wanted = choice(bad)
     subject_data = data[DataEnum.SUBJECT_DICT]
-    changed = True
-    if worst_collision_type == CollisionEnum.STUDENT_COST:
-        other_groups = data[DataEnum.OTHER_STUDENT_GROUPS][most_wanted]
-        changed = change_time_and_day(plan, most_wanted, subject_data, other_groups)
-    elif worst_collision_type == CollisionEnum.LECTURER_COST:
-        lecturer_data = data[DataEnum.LECTURER_DICT]
-        lecturer = subject_data[most_wanted][2]
-        other_groups = lecturer_data[lecturer]
-        changed = change_time_and_day(plan, most_wanted, subject_data, other_groups)
-    elif worst_collision_type == CollisionEnum.ROOM_COST:
-        room_data = data[DataEnum.ROOM_GROUPS]
-        rooms = subject_data[most_wanted][1]
-        room_collision_nums = {r: {} for r in rooms}
-        min_collision_nums = {r: 999 for r in rooms}
-        for r in rooms:
-            other_groups = room_data[r]
-            success, collision_num = try_to_change_time_and_day(plan, most_wanted, subject_data, other_groups)
-            if collision_num is None and plan[most_wanted][2] == r:
-                changed = False
-                break
-            if success:
-                plan[most_wanted][2] = r
-                break
-            else:
-                room_collision_nums[r] = collision_num
-        else:
+    if worst_collision_type != -1:
+        bad = [x for x in sorted(collision_costs.keys(),
+                                 key=lambda s: collision_costs[s][worst_collision_type],
+                                 reverse=True
+                                 )[:3] if collision_costs[x][worst_collision_type] != 0]
+
+        most_wanted = choice(bad)
+        changed = True
+        if worst_collision_type == CollisionEnum.STUDENT_COST:
+            other_groups = data[DataEnum.OTHER_STUDENT_GROUPS][most_wanted]
+            changed = change_time_and_day(plan, most_wanted, subject_data, other_groups)
+        elif worst_collision_type == CollisionEnum.LECTURER_COST:
+            lecturer_data = data[DataEnum.LECTURER_DICT]
+            lecturer = subject_data[most_wanted][2]
+            other_groups = lecturer_data[lecturer]
+            changed = change_time_and_day(plan, most_wanted, subject_data, other_groups)
+        elif worst_collision_type == CollisionEnum.ROOM_COST:
+            room_data = data[DataEnum.ROOM_GROUPS]
+            rooms = subject_data[most_wanted][1]
+            room_collision_nums = {r: {} for r in rooms}
+            min_collision_nums = {r: 999 for r in rooms}
             for r in rooms:
-                min_collision_nums[r] = min(room_collision_nums[r].values())
-            min_coll_num = min(min_collision_nums.values())
-            possible_rooms = [r for r in rooms if min_collision_nums[r] == min_coll_num]
-            possible_slots = []
-            for r in possible_rooms:
-                possible_slots.extend([(slot_time, slot_day, r) for slot_time, slot_day in room_collision_nums[r]
-                                       if room_collision_nums[(slot_time, slot_day)] == min_coll_num])
-            slot = choice(possible_slots)
-            if plan[most_wanted][0] == slot[0] and plan[most_wanted][1] == slot[1] and plan[most_wanted][2] == slot[2]:
-                changed = False
+                other_groups = room_data[r]
+                success, collision_num = try_to_change_time_and_day(plan, most_wanted, subject_data, other_groups)
+                if collision_num is None and plan[most_wanted][2] == r:
+                    changed = False
+                    break
+                if success:
+                    plan[most_wanted][2] = r
+                    break
+                else:
+                    room_collision_nums[r] = collision_num
             else:
-                plan[most_wanted][0] = slot[0]
-                plan[most_wanted][1] = slot[1]
-                plan[most_wanted][2] = slot[2]
+                for r in rooms:
+                    min_collision_nums[r] = min(room_collision_nums[r].values())
+                min_coll_num = min(min_collision_nums.values())
+                possible_rooms = [r for r in rooms if min_collision_nums[r] == min_coll_num]
+                possible_slots = []
+                for r in possible_rooms:
+                    possible_slots.extend([(slot_time, slot_day, r) for slot_time, slot_day in room_collision_nums[r]
+                                           if room_collision_nums[(slot_time, slot_day)] == min_coll_num])
+                slot = choice(possible_slots)
+                if plan[most_wanted][0] == slot[0] and plan[most_wanted][1] == slot[1] and plan[most_wanted][2] == slot[2]:
+                    changed = False
+                else:
+                    plan[most_wanted][0] = slot[0]
+                    plan[most_wanted][1] = slot[1]
+                    plan[most_wanted][2] = slot[2]
+        if not changed:
+            p = choice(list(subject_data.keys()))
 
-    if not changed:
-        p = choice(list(subject_data.keys()))
-
-        sala = plan[p][2]
-        plan[p] = [randrange(0, 720 - 90, 15), randrange(0, 5), sala]
+            sala = plan[p][2]
+            plan[p] = [randrange(0, 720 - 90, 15), randrange(0, 5), sala]
 
     return plan
 
