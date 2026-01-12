@@ -43,7 +43,7 @@ class GUI(object):
     def __init__(self):
         super().__init__()
 
-        if GUI.instance == None:
+        if GUI.instance is None:
             GUI.instance = self
 
         self.backgroundColor = (0, 0, 0, 1)
@@ -107,7 +107,7 @@ class GUI(object):
             imgui.same_line()
             if imgui.button("Zmień"):
                 path = askdirectory(title="Wybierz Folder")
-                if path != None and path != "":
+                if path is not None and path != "":
                     self.data_folder = path
 
                     calc_plan.invalidate_data()
@@ -141,7 +141,7 @@ class GUI(object):
                 if self.show_preview:
                     imgui.same_line()
                     _, self.opt_step = imgui.checkbox("Krok po kroku", self.opt_step)
-            elif self.algorytm_thread != None:
+            elif self.algorytm_thread is not None:
                 imgui.text("Algorytm działa...")
 
             elif self.show_preview:
@@ -154,12 +154,12 @@ class GUI(object):
                 if imgui.button("Zakończ"):
                     self.is_running = False
 
-            if (self.algorytm_thread != None or self.show_preview) and self.is_running:
+            if (self.algorytm_thread is not None or self.show_preview) and self.is_running:
                 imgui.label_text("##2", f"Temperatura: {opt_instance.T}")
                 self.best_val, _ = optimize_sol.goal_function(self.plan, self.unassigned_groups, calc_plan.get_data())
-                imgui.label_text("##1", f"Wartość funkcji celu: {self.best_val}");
+                imgui.label_text("##1", f"Wartość funkcji celu: {self.best_val}")
                     
-            if self.is_running and self.algorytm_thread != None and not self.algorytm_thread.is_alive():
+            if self.is_running and self.algorytm_thread is not None and not self.algorytm_thread.is_alive():
                 self.is_running = False
                 self.algorytm_thread = None
                 self.plan, self.unassigned_groups = opt_instance.get_result()
@@ -168,7 +168,7 @@ class GUI(object):
                 self.calc_plan_for_student()
             
 
-            if self.plan != None:
+            if self.plan is not None:
                 _, new_select = imgui.combo("Category", self.category, ["Wszystko", "Studenci", "Prowadzący", "Sale"])
                 if new_select != self.category:
                     self.category = new_select
@@ -176,7 +176,7 @@ class GUI(object):
                     self.calc_plan_for_student()
 
                 if not self.is_running:
-                    imgui.label_text("##1", f"Finalna wartość funkcji celu: {self.best_val}");
+                    imgui.label_text("##1", f"Finalna wartość funkcji celu: {self.best_val}")
 
                     if imgui.collapsing_header("Wykres", None)[0]:
                         values = array('f', opt_instance.goal_log)
@@ -184,7 +184,7 @@ class GUI(object):
 
 
 
-            if self.plan != None and self.category != 0:
+            if self.plan is not None and self.category != 0:
                 cur_array = []
                 new_select = self.current_select
                 if self.category == 1:
@@ -203,8 +203,8 @@ class GUI(object):
 
 
 
-            if self.plan != None and self.algorytm_thread == None:
-                if self.unassigned_groups != None and len(self.unassigned_groups) > 0:
+            if self.plan is not None and self.algorytm_thread is None:
+                if self.unassigned_groups is not None and len(self.unassigned_groups) > 0:
                     text = "Nieprzydzielone grupy: "
                     text = text + ', '.join(self.unassigned_groups)
                     imgui.text(text)
@@ -322,7 +322,7 @@ class GUI(object):
 
             cur_cur = imgui.get_cursor_pos()
             imgui.set_cursor_pos([pos_x - right_padding, pos_y + 60*i + 7])
-            imgui.text(f"{time // 60:02d}:00");
+            imgui.text(f"{time // 60:02d}:00")
 
             imgui.set_cursor_pos(cur_cur)
 
@@ -359,7 +359,7 @@ class GUI(object):
                         break
 
                 text = s[0] + "\n" + lecturer + "\n" + room
-                imgui.button(text, size_x - button_padding, subject_data[s[0]][0] - button_padding);
+                imgui.button(text, size_x - button_padding, subject_data[s[0]][0] - button_padding)
                 latest_end[x_index] = end
 
         for i in range(5):

@@ -93,14 +93,7 @@ def goal_function(plan, unassigned_groups, data):
 
 def change_plan(plan, unassigned_groups, marked_groups, data, change_max_time = True, change_window = True):
 
-    #   Sytuacja: za dużo godzin w jednym dniu dla konkretnego studenta
-    #   Jak naprawić? Przestawić na inny dzień, na którym ma mało zajęć
-    #   Jakie mogą być skutki? -> Zajęcia mogą być przestawione na dzień, w którym wiele innych
-    # studentów ma dużo zajęć, co sprawi że plan będzie gorszy
-    # ALBO: Zajęcia będą przestawione i będą przeszkadzały mniejszej ilości studentów
-    # O tym zdecyduje FUNKCJA OCENY!!! -> my robimy zmianę na chybił trafił
-    # Ile zmian zrobić? -> najlepiej rozważyć każdy przedmiot, który został odnotowany
-    # w marked_groups[MarkEnum.MAX_TIME]
+
 
 ## TESTY!!
     students = data[DataEnum.STUDENT_DICT].keys()
