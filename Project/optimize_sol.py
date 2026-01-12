@@ -93,10 +93,8 @@ def add_collisions(plan, collision_costs, x, x_data, subject_data, day, coeffs):
             latest_end = end
 
 
-def goal_function(plan, data, only_collisions=True):
-    group_costs = {GroupCostsEnum.COLLISION: {},
-                   GroupCostsEnum.MAX_TIME: {},
-                   GroupCostsEnum.WINDOW: {}}
+def goal_function(plan, data):
+    group_costs = {GroupCostsEnum.COLLISION: {}}
 
     collision_costs = get_collision_costs(plan, data)
 
@@ -106,53 +104,7 @@ def goal_function(plan, data, only_collisions=True):
     )
     group_costs[GroupCostsEnum.COLLISION] = collision_costs
 
-    if not only_collisions:
-        for student in data[DataEnum.STUDENT_DICT].keys():
-            groups_on_day = {day_of_week: [group for group in students_data[student] if plan[group][1] == day_of_week]
-                             for day_of_week
-                             in range(0, 5)}
-            group_costs[GroupCostsEnum.COLLISION][student] = []
-            group_costs[GroupCostsEnum.MAX_TIME][student] = [[], [], [], [], []]
-            group_costs[GroupCostsEnum.WINDOW][student] = []
-            for day_of_week in range(0, 5):
-                time_sum = 0
-                for group in groups_on_day[day_of_week]:
-                    time_sum += data[DataEnum.SUBJECT_DICT][group][0]
-                if time_sum > coeffs_students["max_time_in_one_day"]:
-                    fun_sum += coeffs_students["cost_per_minute_over_limit"] * (
-                            time_sum - coeffs_students["cost_per_minute_over_limit"])
-                    group_costs[GroupCostsEnum.MAX_TIME][student][day_of_week] = groups_on_day[day_of_week]
-                chronological_groups = sorted(groups_on_day[day_of_week], key=lambda x: plan[x][0])
-                group_costs[GroupCostsEnum.WINDOW][student] = []
-                for i in range(1, len(chronological_groups)):
-                    if plan[chronological_groups[i]][0] - plan[chronological_groups[i - 1]][0] > coeffs_students[
-                        "min_window_length"]:
-                        fun_sum += coeffs_students["window_cost"]
-                        group_costs[GroupCostsEnum.WINDOW][student] += [chronological_groups[i - 1],
-                                                                        chronological_groups[i]]
-        for lecturer in data[DataEnum.LECTURER_DICT].keys():
-            groups_on_day = {day_of_week: [group for group in data[DataEnum.LECTURER_DICT][lecturer] if
-                                           plan[group][1] == day_of_week] for day_of_week
-                             in range(0, 5)}
-            group_costs[GroupCostsEnum.MAX_TIME][lecturer] = [[], [], [], [], []]
-            group_costs[GroupCostsEnum.WINDOW][lecturer] = []
-            for day_of_week in range(0, 5):
-                time_sum = 0
-                for group in groups_on_day[day_of_week]:
-                    time_sum += data[DataEnum.SUBJECT_DICT][group][0]
-                if time_sum > coeffs_lecturers["max_time_in_one_day"]:
-                    fun_sum += coeffs_lecturers["cost_per_minute_over_limit"] * (
-                            time_sum - coeffs_lecturers["cost_per_minute_over_limit"])
-                    group_costs[GroupCostsEnum.MAX_TIME][lecturer][day_of_week] = groups_on_day[day_of_week]
-                chronological_groups = sorted(groups_on_day[day_of_week], key=lambda x: plan[x][0])
-                for i in range(1, len(chronological_groups)):
-                    if plan[chronological_groups[i]][0] - plan[chronological_groups[i - 1]][0] > coeffs_lecturers[
-                        "min_window_length"]:
-                        fun_sum += coeffs_lecturers["window_cost"]
-                        group_costs[GroupCostsEnum.WINDOW][lecturer] += [chronological_groups[i - 1],
-                                                                         chronological_groups[i]]
-
-    return fun_sum, group_costs
+    return fun_sum, group_costs, collision_costs
 
 
 def try_to_change_time_and_day(plan, most_wanted, subject_data, other_groups):
@@ -203,13 +155,16 @@ def change_time_and_day(plan, most_wanted, subject_data, other_groups):
         return True
 
 
-def change_randomly(data, plan, number_of_changes=1):
-    subject_data = data[DataEnum.SUBJECT_DICT]
-    for i in range(number_of_changes):
-        p = choice(list(subject_data.keys()))
 
-        sala = choice(subject_data[p][1])
-        plan[p] = [randrange(0, 720 - 90, 15), randrange(0, 5), sala]
+def change_randomly(data, plan):
+
+    subject_data = data[DataEnum.SUBJECT_DICT]
+
+    p = choice(list(subject_data.keys()))
+
+    sala = choice(subject_data[p][1])
+    plan[p] = [randrange(0, 720 - 90, 15), randrange(0, 5), sala]
+    return p
 
 
 def change_plan(plan, group_costs, data):
@@ -217,6 +172,7 @@ def change_plan(plan, group_costs, data):
     bad = [x for x in sorted(collision_costs.keys(), key=lambda sub: collision_costs[sub], reverse=True)
            if collision_costs[x] != 0]
     changed = False
+    changed_subject = None
     for most_wanted in bad:
         subject_data = data[DataEnum.SUBJECT_DICT]
         other_groups_student = data[DataEnum.OTHER_STUDENT_GROUPS][most_wanted]
@@ -226,77 +182,11 @@ def change_plan(plan, group_costs, data):
         other_groups = set(other_groups)
         changed = change_time_and_day(plan, most_wanted, subject_data, other_groups)
         if changed:
+            changed_subject = most_wanted
             break
     if not changed:
-        change_randomly(data, plan)
-    return plan
-    # collision_costs = group_costs[GroupCostsEnum.COLLISION]
-    # worst_collision_cost = 0
-    # worst_collision_type = -1
-    # for coll_type in CollisionEnum:
-    #     sub_with_max_cost = max(
-    #         collision_costs.keys(),
-    #         key=lambda sub: collision_costs[sub][coll_type]
-    #     )
-    #     max_cost = collision_costs[sub_with_max_cost][coll_type]
-    #
-    #     if max_cost > worst_collision_cost:
-    #         worst_collision_cost = max_cost
-    #         worst_collision_type = coll_type
-    # subject_data = data[DataEnum.SUBJECT_DICT]
-    # if worst_collision_type != -1:
-    #     bad = [x for x in sorted(collision_costs.keys(),
-    #                              key=lambda s: collision_costs[s][worst_collision_type],
-    #                              reverse=True
-    #                              )[:3] if collision_costs[x][worst_collision_type] != 0]
-    #
-    #     most_wanted = choice(bad)
-    #     changed = True
-    #     if worst_collision_type == CollisionEnum.STUDENT_COST:
-    #         other_groups = data[DataEnum.OTHER_STUDENT_GROUPS][most_wanted]
-    #         changed = change_time_and_day(plan, most_wanted, subject_data, other_groups)
-    #     elif worst_collision_type == CollisionEnum.LECTURER_COST:
-    #         lecturer_data = data[DataEnum.LECTURER_DICT]
-    #         lecturer = subject_data[most_wanted][2]
-    #         other_groups = lecturer_data[lecturer]
-    #         changed = change_time_and_day(plan, most_wanted, subject_data, other_groups)
-    #     elif worst_collision_type == CollisionEnum.ROOM_COST:
-    #         room_data = data[DataEnum.ROOM_GROUPS]
-    #         rooms = subject_data[most_wanted][1]
-    #         room_collision_nums = {r: {} for r in rooms}
-    #         min_collision_nums = {r: 999 for r in rooms}
-    #         for r in rooms:
-    #             other_groups = room_data[r]
-    #             success, collision_num = try_to_change_time_and_day(plan, most_wanted, subject_data, other_groups)
-    #             if collision_num is None and plan[most_wanted][2] == r:
-    #                 changed = False
-    #                 break
-    #             if success:
-    #                 plan[most_wanted][2] = r
-    #                 break
-    #             else:
-    #                 room_collision_nums[r] = collision_num
-    #         else:
-    #             for r in rooms:
-    #                 min_collision_nums[r] = min(room_collision_nums[r].values())
-    #             min_coll_num = min(min_collision_nums.values())
-    #             possible_rooms = [r for r in rooms if min_collision_nums[r] == min_coll_num]
-    #             possible_slots = []
-    #             for r in possible_rooms:
-    #                 possible_slots.extend([(slot_time, slot_day, r) for slot_time, slot_day in room_collision_nums[r]
-    #                                        if room_collision_nums[(slot_time, slot_day)] == min_coll_num])
-    #             slot = choice(possible_slots)
-    #             if plan[most_wanted][0] == slot[0] and plan[most_wanted][1] == slot[1] and plan[most_wanted][2] == slot[2]:
-    #                 changed = False
-    #             else:
-    #                 plan[most_wanted][0] = slot[0]
-    #                 plan[most_wanted][1] = slot[1]
-    #                 plan[most_wanted][2] = slot[2]
-    #     if not changed:
-    #         change_randomly(data, plan)
-    #
-    # return plan
-
+        changed_subject = change_randomly(data, plan)
+    return plan, [changed_subject]
 
 class OptimazeSol(object):
     def __init__(self):
@@ -307,12 +197,14 @@ class OptimazeSol(object):
         self.alpha = 0.999
         self.T_eps = 0.0001
         self.max_iter = np.inf
+
         self.iter = 0
         self.best_plan = None
         self.best_goal_sum = None
 
         self.cur_plan = None
         self.cur_goal_func = None
+        self.last_changed = []
 
         self.goal_log = []
 
@@ -324,18 +216,18 @@ class OptimazeSol(object):
         self.T = self.start_T
         self.data = data
         self.iter = 0
-        self.cur_goal_sum, self.cur_marked_groups = goal_function(self.best_plan, self.data)
+        self.cur_goal_sum, self.cur_marked_groups, _ = goal_function(self.best_plan, self.data)
         self.best_goal_sum = self.cur_goal_sum
         self.goal_log = []
 
     def step(self):
-        new_plan = change_plan(deepcopy(self.cur_plan), self.cur_marked_groups, self.data)
-        new_goal_sum, self.cur_marked_groups = goal_function(new_plan, self.data)
+        new_plan, self.last_changed = change_plan(deepcopy(self.cur_plan), self.cur_marked_groups, self.data)
+        new_goal_sum, self.cur_marked_groups, _= goal_function(new_plan, self.data)
         delta = new_goal_sum - self.cur_goal_sum
 
         if self.prev_goal_sum == self.cur_goal_sum:
             change_randomly(self.data, new_plan)
-            new_goal_sum, self.cur_marked_groups = goal_function(new_plan, self.data)
+            new_goal_sum, self.cur_marked_groups, _ = goal_function(new_plan, self.data)
             delta = new_goal_sum - self.cur_goal_sum
         self.prev_goal_sum = self.cur_goal_sum
 
@@ -351,6 +243,8 @@ class OptimazeSol(object):
         elif random_value < np.exp(-delta / self.T):
             self.cur_plan = new_plan
             self.cur_goal_sum = new_goal_sum
+        else:
+            self.last_changed = []
 
         self.T *= self.alpha
         self.iter += 1
