@@ -26,9 +26,9 @@ def prepare_plan(simple=True):
     get_data()
 
     if not simple:
-        starting_plan, unassigned_groups = init_sol(data)
+        starting_plan = init_sol(data)
     else:
-        starting_plan, unassigned_groups = init_simple(data)
+        starting_plan = init_simple(data)
 
     # write_plan_to_csv(starting_plan)
 
@@ -40,7 +40,7 @@ def prepare_plan(simple=True):
     for group in starting_plan.keys():
         if starting_plan[group] != loaded_plan[group]:
             identical = False
-    goal_fun_sum, marked_groups = goal_function(starting_plan, unassigned_groups, data)
+    goal_fun_sum, marked_groups = goal_function(starting_plan, data)
 
-    return starting_plan, unassigned_groups
+    return starting_plan
 

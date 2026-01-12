@@ -63,7 +63,6 @@ class GUI(object):
         self.show_preview = False
         self.is_running = False
         self.plan = None
-        self.unassigned_groups = None
         self.algorytm_thread = None
 
         io = imgui.get_io()
@@ -121,10 +120,10 @@ class GUI(object):
                 if imgui.button("Oblicz plan"):
                     self.category = 0
                     self.current_select = 0
-                    self.plan, self.unassigned_groups = calc_plan.prepare_plan()
+                    self.plan = calc_plan.prepare_plan()
 
                     self.is_running = True
-                    opt_instance.setup(self.plan, self.unassigned_groups, calc_plan.get_data())
+                    opt_instance.setup(self.plan, calc_plan.get_data())
 
                     if not self.show_preview:
                         self.opt_step = False
@@ -146,7 +145,7 @@ class GUI(object):
 
             elif self.show_preview:
                 if not self.opt_step or imgui.button("Krok"):
-                    should_continue, self.plan, self.unassigned_groups = opt_instance.step()
+                    should_continue, self.plan = opt_instance.step()
                     self.calc_plan_for_student()
                     if not should_continue:
                         self.is_running = False
@@ -156,14 +155,14 @@ class GUI(object):
 
             if (self.algorytm_thread is not None or self.show_preview) and self.is_running:
                 imgui.label_text("##2", f"Temperatura: {opt_instance.T}")
-                self.best_val, _ = optimize_sol.goal_function(self.plan, self.unassigned_groups, calc_plan.get_data())
+                self.best_val, _ = optimize_sol.goal_function(self.plan, calc_plan.get_data())
                 imgui.label_text("##1", f"Wartość funkcji celu: {self.best_val}")
                     
             if self.is_running and self.algorytm_thread is not None and not self.algorytm_thread.is_alive():
                 self.is_running = False
                 self.algorytm_thread = None
-                self.plan, self.unassigned_groups = opt_instance.get_result()
-                self.best_val, _ = optimize_sol.goal_function(self.plan, self.unassigned_groups, calc_plan.get_data())
+                self.plan = opt_instance.get_result()
+                self.best_val, _ = optimize_sol.goal_function(self.plan, calc_plan.get_data())
 
                 self.calc_plan_for_student()
             
@@ -204,10 +203,10 @@ class GUI(object):
 
 
             if self.plan is not None and self.algorytm_thread is None:
-                if self.unassigned_groups is not None and len(self.unassigned_groups) > 0:
-                    text = "Nieprzydzielone grupy: "
-                    text = text + ', '.join(self.unassigned_groups)
-                    imgui.text(text)
+                # if self.unassigned_groups is not None and len(self.unassigned_groups) > 0:
+                #     text = "Nieprzydzielone grupy: "
+                #     text = text + ', '.join(self.unassigned_groups)
+                #     imgui.text(text)
                 self.render_grid()
                     
             imgui.pop_font()
@@ -262,7 +261,7 @@ class GUI(object):
 
     def calc_plan_for_student(self):
         # dla testów
-        self.best_val, _ = optimize_sol.goal_function(self.plan, self.unassigned_groups, calc_plan.get_data())
+        self.best_val, _ = optimize_sol.goal_function(self.plan, calc_plan.get_data())
         self.columns_per_day = [1,1,1,1,1]
         data = calc_plan.get_data()
         students = data[enums.DataEnum.STUDENT_DICT];

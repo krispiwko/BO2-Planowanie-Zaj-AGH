@@ -3,7 +3,7 @@
 import numpy as np
 from enums import *
 
-def try_to_insert_group(data, group, plan, curr_time, day_of_week):
+def insert_group_without_collision(data, group, plan, curr_time, day_of_week):
     # Sprawdzamy dla prowadzącego, czy może prowadzić wtedy zajęcia
     remembered_room = None
     groop_not_assigned = True
@@ -70,36 +70,35 @@ def init_simple(data):
         plan[group][1] = cur_day
         plan[group][2] = data[DataEnum.SUBJECT_DICT][group][1][0]
 
-        cur_slot += 90 + 15
+       # cur_slot += 90 + 15
+        cur_slot += data[DataEnum.SUBJECT_DICT][group][0]
         if cur_slot >= 720:
             cur_day = (cur_day + 1) % 5
             cur_slot = 0
 
-    return plan, []
+    return plan
 
 def init_sol(data):
     plan = {group: [np.nan, np.nan, np.nan] for group in data[DataEnum.SUBJECT_DICT].keys()}  # Przypisujemy: [godzina, dzień, sala]
-    unassigned_groups = [] # Ławka rezerwowych
     for group in data[DataEnum.SUBJECT_DICT].keys():
         group_not_assigned = True
         curr_time = 0  # 8.00 rano
         day_of_week = 0  # Poniedziałek, 4 oznacza Piątek
         while group_not_assigned:
             if day_of_week > 4:
-                unassigned_groups.append(group)
                 break
 
-            group_not_assigned, remembered_room = try_to_insert_group(data, group, plan, curr_time, day_of_week)
+            group_not_assigned, remembered_room = insert_group_without_collision(data, group, plan, curr_time, day_of_week)
             if group_not_assigned:
                 if_out_of_time, curr_time, day_of_week = modify_time_and_day(data, group, curr_time, day_of_week)
                 if if_out_of_time:
-                    unassigned_groups.append(group)
                     break
             else:
                 plan[group][0] = curr_time
                 plan[group][1] = day_of_week
                 plan[group][2] = remembered_room
-    return plan, unassigned_groups
+
+    return plan
 
 
 

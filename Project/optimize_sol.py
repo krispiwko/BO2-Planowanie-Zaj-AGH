@@ -6,16 +6,17 @@ from random import randint, random, randrange
 from imgui import DATA_TYPE_FLOAT
 from enums import *
 import numpy as np
-from init_sol import try_to_insert_group, modify_time_and_day
+from init_sol import insert_group_without_collision, modify_time_and_day
 
-coeffs = {"unassigned_groups": 500}
 coeffs_students = {
+    "collision_cost": 20,
     "max_time_in_one_day": 360,
     "cost_per_minute_over_limit": 0.01,
     "min_window_length": 90,
     "window_cost": 2,
 }
 coeffs_lecturers = {
+    "collision_cost": 20,
     "max_time_in_one_day": 360,
     "cost_per_minute_over_limit": 0.01,
     "min_window_length": 90,
@@ -42,12 +43,12 @@ def get_max_concurrent(data, subjects):
 
     return max_overlap
 
-def goal_function(plan, unassigned_groups, data):
+def goal_function(plan, data):
 
     marked_groups = {MarkEnum.MAX_TIME: {},
                      MarkEnum.WINDOW: {}}
     fun_sum = 0
-    fun_sum += coeffs["unassigned_groups"] * len(unassigned_groups)
+
     for student in data[DataEnum.STUDENT_DICT].keys():
         groups_on_day = {day_of_week: [group for group in data[DataEnum.STUDENT_DICT][student] if plan[group][1] == day_of_week] for day_of_week
                          in range(0, 5)}
@@ -91,9 +92,7 @@ def goal_function(plan, unassigned_groups, data):
 
     return fun_sum, marked_groups
 
-def change_plan(plan, unassigned_groups, marked_groups, data, change_max_time = True, change_window = True):
-
-
+def change_plan(plan, marked_groups, data, change_max_time = True, change_window = True):
 
 ## TESTY!!
     students = data[DataEnum.STUDENT_DICT].keys()
@@ -127,123 +126,9 @@ def change_plan(plan, unassigned_groups, marked_groups, data, change_max_time = 
     plan[p] = [randrange(0,720-90,15), randrange(0,5), sala]
 
 
-    return plan, unassigned_groups
+    return plan
 ## KONIEC
 
-
-    unmarked_group = []
-    if change_max_time:
-        for student in [x for x in data[DataEnum.STUDENT_DICT].keys() if marked_groups[MarkEnum.MAX_TIME][x] != [[], [], [], [], []]]:
-            for day in range(5):
-                for group in marked_groups[MarkEnum.MAX_TIME][student][day]:
-                    if group in unmarked_group:
-                        marked_groups[MarkEnum.MAX_TIME][student][day].remove(group)
-            class_time_in_day = {day: 0 for day in range(5)}
-            for group in [group for group in data[DataEnum.STUDENT_DICT][student] if not np.isnan(plan[group][0])]:
-                day = plan[group][1]
-                class_time_in_day[day] += data[DataEnum.SUBJECT_DICT][group][0]
-            overloaded_days = [day for day in range(5) if class_time_in_day[day] > coeffs_students["max_time_in_one_day"]]
-            free_days = [day for day in range(5) if class_time_in_day[day] + 90 < coeffs_students["max_time_in_one_day"]]
-            while len(free_days) != 0 and len(overloaded_days) != 0:
-                for day in overloaded_days:
-                    marked_groups[MarkEnum.MAX_TIME][student][day] = sorted(marked_groups[MarkEnum.MAX_TIME][student][day], key=lambda x: data[DataEnum.SUBJECT_DICT][x][0], reverse=True)
-                    while len(marked_groups[MarkEnum.MAX_TIME][student][day]) != 0:
-                        group_to_move = marked_groups[MarkEnum.MAX_TIME][student][day].pop()
-                        for free_day in free_days:
-                            if_out_of_time = False
-                            if class_time_in_day[free_day] + data[DataEnum.SUBJECT_DICT][group_to_move][0] > coeffs_students["max_time_in_one_day"]:
-                                free_days.remove(free_day)
-                                continue
-                            else:
-                                group_not_assigned = True
-                                curr_time = 0
-                                while group_not_assigned:
-                                    group_not_assigned, remembered_room = try_to_insert_group(data, group_to_move, plan, curr_time, free_day)
-                                    if group_not_assigned:
-                                        if_out_of_time, curr_time, free_day = modify_time_and_day(data, group_to_move, curr_time, free_day, change_day = False)
-                                        if if_out_of_time:
-                                            break
-                                    else:
-                                        plan[group_to_move][0] = curr_time
-                                        plan[group_to_move][1] = free_day
-                                        plan[group_to_move][2] = remembered_room
-                                        unmarked_group.append(group_to_move)
-                                        class_time_in_day[free_day] += data[DataEnum.SUBJECT_DICT][group_to_move][0]
-                                        class_time_in_day[day] -= data[DataEnum.SUBJECT_DICT][group_to_move][0]
-                            if if_out_of_time:
-                                continue
-                    else:
-                        if len(free_days) != 0:
-                            overloaded_days.remove(day)
-        for lecturer in [x for x in data[DataEnum.LECTURER_DICT].keys() if
-                        marked_groups[MarkEnum.MAX_TIME][x] != [[], [], [], [], []]]:
-            for day in range(5):
-                for group in marked_groups[MarkEnum.MAX_TIME][lecturer][day]:
-                    if group in unmarked_group:
-                        marked_groups[MarkEnum.MAX_TIME][lecturer][day].remove(group)
-            class_time_in_day = {day: 0 for day in range(5)}
-            for group in [group for group in data[DataEnum.LECTURER_DICT][lecturer] if not np.isnan(plan[group][0])]:
-                day = plan[group][1]
-                class_time_in_day[day] += data[DataEnum.SUBJECT_DICT][group][0]
-            overloaded_days = [day for day in range(5) if class_time_in_day[day] > coeffs_students["max_time_in_one_day"]]
-            free_days = [day for day in range(5) if class_time_in_day[day] + 90 < coeffs_students["max_time_in_one_day"]]
-            while len(free_days) != 0 and len(overloaded_days) != 0:
-                for day in overloaded_days:
-                    marked_groups[MarkEnum.MAX_TIME][lecturer][day] = sorted(marked_groups[MarkEnum.MAX_TIME][lecturer][day],
-                                                                            key=lambda x: data[DataEnum.SUBJECT_DICT][x][0],
-                                                                            reverse=True)
-                    while len(marked_groups[MarkEnum.MAX_TIME][lecturer][day]) != 0:
-                        group_to_move = marked_groups[MarkEnum.MAX_TIME][lecturer][day].pop()
-                        for free_day in free_days:
-                            if_out_of_time = False
-                            if class_time_in_day[free_day] + data[DataEnum.SUBJECT_DICT][group_to_move][0] > \
-                                    coeffs_students["max_time_in_one_day"]:
-                                free_days.remove(free_day)
-                                continue
-                            else:
-                                group_not_assigned = True
-                                curr_time = 0
-                                while group_not_assigned:
-                                    group_not_assigned, remembered_room = try_to_insert_group(data, group_to_move, plan,
-                                                                                              curr_time, free_day)
-                                    if group_not_assigned:
-                                        if_out_of_time, curr_time, free_day = modify_time_and_day(data, group_to_move,
-                                                                                                  curr_time, free_day,
-                                                                                                  change_day=False)
-                                        if if_out_of_time:
-                                            break
-                                    else:
-                                        plan[group_to_move][0] = curr_time
-                                        plan[group_to_move][1] = free_day
-                                        plan[group_to_move][2] = remembered_room
-                                        unmarked_group.append(group_to_move)
-                                        class_time_in_day[free_day] += data[DataEnum.SUBJECT_DICT][group_to_move][0]
-                                        class_time_in_day[day] -= data[DataEnum.SUBJECT_DICT][group_to_move][0]
-                            if if_out_of_time:
-                                continue
-                    else:
-                        if len(free_days) != 0:
-                            overloaded_days.remove(day)
-    if change_window:
-        pass
-
-    for unassigned_group in unassigned_groups:
-        group_not_assigned = True
-        curr_time = 0  # 8.00 rano
-        day_of_week = 0  # Poniedziałek, 4 oznacza Piątek
-        while group_not_assigned:
-            group_not_assigned, remembered_room = try_to_insert_group(data, unassigned_group, plan, curr_time, day_of_week)
-            if group_not_assigned:
-                if_out_of_time, curr_time, day_of_week = modify_time_and_day(data, unassigned_group, curr_time, day_of_week)
-                if if_out_of_time:
-                    break
-            else:
-                plan[unassigned_group][0] = curr_time
-                plan[unassigned_group][1] = day_of_week
-                plan[unassigned_group][2] = remembered_room
-                unassigned_groups.remove(unassigned_group)
-
-    return plan, unassigned_groups
 
 class OptimazeSol(object):
     def __init__(self):
@@ -255,49 +140,42 @@ class OptimazeSol(object):
         self.max_iter = 100
         self.iter = 0
         self.best_plan = None
-        self.best_unassigned_groups = None
         self.best_goal_sum = None
 
         self.cur_plan = None
-        self.cur_unassigned_groups = None
         self.cur_goal_func = None
         
         self.goal_log = []
 
 
-    def setup(self, plan, unassigned_groups, data):
+    def setup(self, plan, data):
         self.best_plan = plan
-        self.best_unassigned_groups = unassigned_groups
 
         self.cur_plan = plan
-        self.cur_unassigned_groups = unassigned_groups
 
         self.T = self.start_T
         self.data = data
         self.iter = 0
-        self.cur_goal_sum, self.cur_marked_groups = goal_function(self.best_plan, self.cur_unassigned_groups, self.data)
+        self.cur_goal_sum, self.cur_marked_groups = goal_function(self.best_plan, self.data)
         self.best_goal_sum = self.cur_goal_sum
         self.goal_log = []
 
     def step(self):
-        new_plan, new_unassigned_groups = change_plan(dict(self.cur_plan), self.cur_unassigned_groups, self.cur_marked_groups, self.data)
-        new_goal_sum, self.cur_marked_groups = goal_function(new_plan, new_unassigned_groups, self.data)
+        new_plan = change_plan(dict(self.cur_plan), self.cur_marked_groups, self.data)
+        new_goal_sum, self.cur_marked_groups = goal_function(new_plan, self.data)
         delta = new_goal_sum - self.cur_goal_sum
 
         random_value = random()
 
         if new_goal_sum < self.best_goal_sum:
             self.best_plan = new_plan
-            self.best_unassigned_groups = new_unassigned_groups
             self.best_goal_sum = new_goal_sum
 
             self.cur_plan = new_plan
-            self.cur_unassigned_groups = new_unassigned_groups
             self.cur_goal_sum = new_goal_sum
 
         elif random_value < np.exp(-delta / self.T):
             self.cur_plan = new_plan
-            self.cur_unassigned_groups = new_unassigned_groups
             self.cur_goal_sum = new_goal_sum
 
         self.T *= self.alpha
@@ -305,18 +183,18 @@ class OptimazeSol(object):
         self.goal_log.append(self.cur_goal_sum)
 
         if self.iter >= self.max_iter:
-            return False, self.cur_plan, self.cur_unassigned_groups
-        return True, self.cur_plan, self.cur_unassigned_groups
+            return False, self.cur_plan
+        return True, self.cur_plan
 
     def run(self):
         should_continue = True
         while should_continue:
-            should_continue, _6, _7 = self.step()
+            should_continue, _ = self.step()
 
-        return self.best_plan, self.best_unassigned_groups
+        return self.best_plan
 
     def get_result(self):
-        return self.best_plan, self.best_unassigned_groups
+        return self.best_plan
 
 
 opt_instance = OptimazeSol()
