@@ -194,6 +194,7 @@ def change_plan(plan, group_costs, data):
 
 class OptimazeSol(object):
     def __init__(self):
+        self.stagnation = 0
         self.prev_goal_sum = None
         self.T = 0
         self.start_T = 500
@@ -225,15 +226,17 @@ class OptimazeSol(object):
         self.goal_log = []
 
     def step(self):
+        if self.prev_goal_sum == self.cur_goal_sum:
+            self.stagnation += 1
+            if self.stagnation > 10:
+                change_randomly(self.data, self.cur_plan)
+                self.cur_goal_sum, self.cur_marked_groups, _ = goal_function(self.cur_plan, self.data)
+                self.stagnation = 0
+        self.prev_goal_sum = self.cur_goal_sum
+
         new_plan, self.last_changed = change_plan(deepcopy(self.cur_plan), self.cur_marked_groups, self.data)
         new_goal_sum, self.cur_marked_groups, _= goal_function(new_plan, self.data)
         delta = new_goal_sum - self.cur_goal_sum
-
-        if self.prev_goal_sum == self.cur_goal_sum:
-            change_randomly(self.data, new_plan)
-            new_goal_sum, self.cur_marked_groups, _ = goal_function(new_plan, self.data)
-            delta = new_goal_sum - self.cur_goal_sum
-        self.prev_goal_sum = self.cur_goal_sum
 
         random_value = random()
 
