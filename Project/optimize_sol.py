@@ -58,25 +58,30 @@ def get_collision_costs(plan, data):
     subjects = subject_data.keys()
     collision_costs = {}
     for sub in subjects:
-        collision_costs[sub] = 0
+        collision_costs[sub] = {CollisionEnum.STUDENT_COST: 0,
+                                CollisionEnum.LECTURER_COST: 0,
+                                CollisionEnum.ROOM_COST: 0}
 
     for i in range(5):
         for s in students:
             add_collisions(plan, collision_costs,
                            s, student_data,
-                           subject_data, i, coeffs_students)
+                           subject_data, i,
+                           CollisionEnum.STUDENT_COST, coeffs_students)
         for le in lecturers:
             add_collisions(plan, collision_costs,
                            le, lecturer_data,
-                           subject_data, i, coeffs_lecturers)
+                           subject_data, i,
+                           CollisionEnum.LECTURER_COST, coeffs_lecturers)
         for r in rooms:
             add_collisions(plan, collision_costs,
                            r, room_groups,
-                           subject_data, i, coeffs_rooms)
+                           subject_data, i,
+                           CollisionEnum.ROOM_COST, coeffs_rooms)
     return collision_costs
 
 
-def add_collisions(plan, collision_costs, x, x_data, subject_data, day, coeffs):
+def add_collisions(plan, collision_costs, x, x_data, subject_data, day, collision_enum, coeffs):
     subjects = [(k, plan[k][0]) for k in x_data[x] if plan[k][1] == day]
     subjects.sort(key=lambda x: x[1])
     latest_end = 0
@@ -87,24 +92,70 @@ def add_collisions(plan, collision_costs, x, x_data, subject_data, day, coeffs):
         end = start + duration
 
         if start < latest_end:
-            collision_costs[sub[0]] += coeffs["collision_cost"]
+            collision_costs[sub[0]][collision_enum] += coeffs["collision_cost"]
 
         if end > latest_end:
             latest_end = end
 
 
-def goal_function(plan, data):
-    group_costs = {GroupCostsEnum.COLLISION: {}}
+def goal_function(plan, data, only_collisions=True):
+
+    group_costs = {GroupCostsEnum.COLLISION: {},
+                   GroupCostsEnum.MAX_TIME: {},
+                   GroupCostsEnum.WINDOW: {}}
 
     collision_costs = get_collision_costs(plan, data)
 
     fun_sum = sum(
         cost
-        for cost in collision_costs.values()
+        for subject_costs in collision_costs.values()
+        for cost in subject_costs.values()
     )
     group_costs[GroupCostsEnum.COLLISION] = collision_costs
 
-    return fun_sum, group_costs, collision_costs
+    if not only_collisions:
+        for student in data[DataEnum.STUDENT_DICT].keys():
+            groups_on_day = {day_of_week: [group for group in students_data[student] if plan[group][1] == day_of_week]
+                             for day_of_week
+                             in range(0, 5)}
+            group_costs[GroupCostsEnum.COLLISION][student] = []
+            group_costs[GroupCostsEnum.MAX_TIME][student] = [[], [], [], [], []]
+            group_costs[GroupCostsEnum.WINDOW][student] = []
+            for day_of_week in range(0, 5):
+                time_sum = 0
+                for group in groups_on_day[day_of_week]:
+                    time_sum += data[DataEnum.SUBJECT_DICT][group][0]
+                if time_sum > coeffs_students["max_time_in_one_day"]:
+                    fun_sum += coeffs_students["cost_per_minute_over_limit"] * (
+                            time_sum - coeffs_students["cost_per_minute_over_limit"])
+                    group_costs[GroupCostsEnum.MAX_TIME][student][day_of_week] = groups_on_day[day_of_week]
+                chronological_groups = sorted(groups_on_day[day_of_week], key=lambda x: plan[x][0])
+                group_costs[GroupCostsEnum.WINDOW][student] = []
+                for i in range(1, len(chronological_groups)):
+                    if plan[chronological_groups[i]][0] - plan[chronological_groups[i - 1]][0] > coeffs_students[
+                        "min_window_length"]:
+                        fun_sum += coeffs_students["window_cost"]
+                        group_costs[GroupCostsEnum.WINDOW][student] += [chronological_groups[i - 1], chronological_groups[i]]
+        for lecturer in data[DataEnum.LECTURER_DICT].keys():
+            groups_on_day = {day_of_week: [group for group in data[DataEnum.LECTURER_DICT][lecturer] if
+                                           plan[group][1] == day_of_week] for day_of_week
+                             in range(0, 5)}
+            group_costs[GroupCostsEnum.MAX_TIME][lecturer] = [[], [], [], [], []]
+            group_costs[GroupCostsEnum.WINDOW][lecturer] = []
+            for day_of_week in range(0, 5):
+                time_sum = 0
+                for group in groups_on_day[day_of_week]:
+                    time_sum += data[DataEnum.SUBJECT_DICT][group][0]
+                if time_sum > coeffs_lecturers["max_time_in_one_day"]:
+                    fun_sum += coeffs_lecturers["cost_per_minute_over_limit"] * (
+                            time_sum - coeffs_lecturers["cost_per_minute_over_limit"])
+                    group_costs[GroupCostsEnum.MAX_TIME][lecturer][day_of_week] = groups_on_day[day_of_week]
+                chronological_groups = sorted(groups_on_day[day_of_week], key=lambda x: plan[x][0])
+                for i in range(1, len(chronological_groups)):
+                    if plan[chronological_groups[i]][0] - plan[chronological_groups[i - 1]][0] > coeffs_lecturers[
+                        "min_window_length"]:
+                        fun_sum += coeffs_lecturers["window_cost"]
+                        group_costs[GroupCostsEnum.WINDOW][lecturer] += [chronological_groups[i - 1], chronological_groups[i]]
 
 
 def try_to_change_time_and_day(plan, most_wanted, subject_data, other_groups):
@@ -168,6 +219,7 @@ def change_randomly(data, plan):
 
 
 def change_plan(plan, group_costs, data):
+
     collision_costs = group_costs[GroupCostsEnum.COLLISION]
     bad = [x for x in sorted(collision_costs.keys(), key=lambda sub: collision_costs[sub], reverse=True)
            if collision_costs[x] != 0]

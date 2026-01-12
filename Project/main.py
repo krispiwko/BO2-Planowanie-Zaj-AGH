@@ -8,7 +8,7 @@ import threading
 import optimize_sol
 from imgui.integrations.glfw import GlfwRenderer
 from array import array
-from optimize_sol import opt_instance
+from optimize_sol import *
 from tkinter import Tk
 from tkinter.filedialog import askdirectory
 
@@ -64,6 +64,7 @@ class GUI(object):
         self.is_running = False
         self.plan = None
         self.algorytm_thread = None
+        self.marked_groups = []
 
         io = imgui.get_io()
         self.font = io.fonts.add_font_from_file_ttf("font.ttf", 20, None, io.fonts.get_glyph_ranges_latin())
@@ -73,9 +74,21 @@ class GUI(object):
 
     def print_params(self):
         if imgui.collapsing_header("Parametry", None)[0]:
+            imgui.columns(2)
+            imgui.push_item_width(180)
+            imgui.set_column_offset(1, 400)
             _, opt_instance.start_T = imgui.input_float('Temperatura', opt_instance.start_T)
             _, opt_instance.alpha = imgui.input_float('Współczynnik chłodzienia', opt_instance.alpha)
             _, opt_instance.max_iter = imgui.input_int('Maksymalna liczba iteracji', opt_instance.max_iter)
+
+            imgui.next_column()
+            imgui.push_item_width(180)
+            _, coeffs_students["collision_cost"] = imgui.input_float("Współczynnik Kary (Student)", coeffs_students["collision_cost"])
+            _, coeffs_lecturers["collision_cost"] = imgui.input_float("Współczynnik Kary (Prowadzący)", coeffs_lecturers["collision_cost"])
+            _, coeffs_rooms["collision_cost"] = imgui.input_float("Współczynnik Kary (Sale)", coeffs_rooms["collision_cost"])
+            imgui.pop_item_width()
+            imgui.pop_item_width()
+            imgui.columns(1)
 
         return
 
@@ -108,9 +121,10 @@ class GUI(object):
                 path = askdirectory(title="Wybierz Folder")
                 if path is not None and path != "":
                     self.data_folder = path
+                    self.plan = None
 
                     calc_plan.invalidate_data()
-                    read_data.set_data_folder = self.data_folder
+                    read_data.set_data_folder(self.data_folder)
 
             imgui.separator()
 
@@ -153,34 +167,33 @@ class GUI(object):
                 if imgui.button("Zakończ"):
                     self.is_running = False
 
-            if (self.algorytm_thread is not None or self.show_preview) and self.is_running:
+            if (self.algorytm_thread is not None or self.show_preview) and self.is_running and len(opt_instance.goal_log) > 0:
                 imgui.label_text("##2", f"Temperatura: {opt_instance.T}")
-                self.best_val, _ = optimize_sol.goal_function(self.plan, calc_plan.get_data())
+                self.best_val = opt_instance.goal_log[-1]
                 imgui.label_text("##1", f"Wartość funkcji celu: {self.best_val}")
                     
             if self.is_running and self.algorytm_thread is not None and not self.algorytm_thread.is_alive():
                 self.is_running = False
                 self.algorytm_thread = None
                 self.plan = opt_instance.get_result()
-                self.best_val, _ = optimize_sol.goal_function(self.plan, calc_plan.get_data())
+                self.best_val, _, self.marked_groups = optimize_sol.goal_function(self.plan, calc_plan.get_data())
 
                 self.calc_plan_for_student()
-            
+
 
             if self.plan is not None:
+                if not self.is_running:
+                    imgui.label_text("##1", f"Finalna wartość funkcji celu: {self.best_val}")
+
+                if imgui.collapsing_header("Wykres", None)[0]:
+                    values = array('f', opt_instance.goal_log)
+                    if len(values) > 1:
+                        imgui.plot_lines(label="Funckja celu", values=values, graph_size=(0,300))
                 _, new_select = imgui.combo("Category", self.category, ["Wszystko", "Studenci", "Prowadzący", "Sale"])
                 if new_select != self.category:
                     self.category = new_select
                     self.current_select = 0
                     self.calc_plan_for_student()
-
-                if not self.is_running:
-                    imgui.label_text("##1", f"Finalna wartość funkcji celu: {self.best_val}")
-
-                    if imgui.collapsing_header("Wykres", None)[0]:
-                        values = array('f', opt_instance.goal_log)
-                        imgui.plot_lines(label="Funckja celu", values=values, graph_size=(0,100))
-
 
 
             if self.plan is not None and self.category != 0:
@@ -245,7 +258,7 @@ class GUI(object):
 
     def calc_plan_for_student(self):
         # dla testów
-        self.best_val, _ = optimize_sol.goal_function(self.plan, calc_plan.get_data())
+        self.best_val, _, self.marked_groups = optimize_sol.goal_function(self.plan, calc_plan.get_data())
         self.columns_per_day = [1,1,1,1,1]
         data = calc_plan.get_data()
         students = data[enums.DataEnum.STUDENT_DICT];
@@ -266,6 +279,7 @@ class GUI(object):
 
         draw_list = imgui.get_window_draw_list()
         right_padding = 100
+        scroll_y = imgui.get_scroll_y()
 
         data = calc_plan.get_data()
         io = imgui.get_io()
@@ -298,9 +312,9 @@ class GUI(object):
         for i in range((int)((2100-800)/100)):
             time = (8*60) + i * 60
             draw_list.add_line(0,
-                                pos_y + 60*i,
+                                pos_y + 60*i - scroll_y,
                                 display_w + right_padding + button_padding,
-                                pos_y + 60*i,
+                                pos_y + 60*i - scroll_y,
                                 imgui.get_color_u32_rgba(0.5, 0.5, 0.5, 0.5))
 
             cur_cur = imgui.get_cursor_pos()
@@ -342,7 +356,27 @@ class GUI(object):
                         break
 
                 text = s[0] + "\n" + lecturer + "\n" + room
+                style = imgui.get_style()
+
+
+                issues = [k for k,v in self.marked_groups.items() if 
+                           v[CollisionEnum.STUDENT_COST] > 0
+                        or v[CollisionEnum.LECTURER_COST] > 0
+                        or v[CollisionEnum.ROOM_COST] > 0]
+
+                if (self.category == 0 and s[0] in issues) or (x_index > 0 and self.category != 0):
+                    style.colors[imgui.COLOR_BUTTON] = [0.9/2, 0.59/2, 0.98/2, 1.0]
+
+
+                if self.is_running:
+                    changed = opt_instance.last_changed
+                    if s[0] in changed:
+                        style.colors[imgui.COLOR_BUTTON] = [0.26/2, 1.0/2, 0.26/2, 1.0]
+
                 imgui.button(text, size_x - button_padding, subject_data[s[0]][0] - button_padding)
+
+
+                style.colors[imgui.COLOR_BUTTON] = [0.26/2, 0.59/2, 0.98/2, 1.0]
                 latest_end[x_index] = end
 
         for i in range(5):
@@ -353,7 +387,7 @@ class GUI(object):
             if i == 4:
                 offset_x = pos_x
 
-            draw_list.add_line(offset_x, text_pos_y, offset_x, lowest_point, imgui.get_color_u32_rgba(0.5, 0.5, 0.5, 0.5))
+            draw_list.add_line(offset_x, text_pos_y - scroll_y, offset_x, lowest_point - scroll_y, imgui.get_color_u32_rgba(0.5, 0.5, 0.5, 0.5))
 
 if __name__ == "__main__":
     gui = GUI()
