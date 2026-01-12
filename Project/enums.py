@@ -12,3 +12,4 @@ class DataEnum(Enum):
 class MarkEnum(Enum):
     MAX_TIME = 0
     WINDOW = 1
+    COLLISION = 2

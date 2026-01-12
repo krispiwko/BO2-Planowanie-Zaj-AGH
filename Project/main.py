@@ -225,23 +225,7 @@ class GUI(object):
         glfw.terminate()
 
     def get_max_concurrent(self, subjects):
-        subject_data = calc_plan.get_data()[enums.DataEnum.SUBJECT_DICT]
-        points = []
-        for s in subjects:
-            end = s[1] + subject_data[s[0]][0]
-            points.append((s[1], +1))
-            points.append((end, -1))
-
-        points.sort(key=lambda x: (x[0], x[1]))
-
-        current = 0
-        max_overlap = 0
-
-        for _, delta in points:
-            current += delta
-            max_overlap = max(max_overlap, current)
-
-        return max_overlap
+        return optimize_sol.get_max_concurrent(calc_plan.get_data(), subjects)
 
     def get_subject_list(self):
         data = calc_plan.get_data()

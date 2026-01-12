@@ -45,7 +45,8 @@ def get_max_concurrent(data, subjects):
 
 def goal_function(plan, data):
 
-    marked_groups = {MarkEnum.MAX_TIME: {},
+    marked_groups = {MarkEnum.COLLISION: {},
+                     MarkEnum.MAX_TIME: {},
                      MarkEnum.WINDOW: {}}
     fun_sum = 0
 

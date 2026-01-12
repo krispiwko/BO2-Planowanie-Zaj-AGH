@@ -15,7 +15,7 @@ data = None
 def get_data():
     global data
 
-    if data != None:
+    if data is not None:
         return data
 
     data = create_data()
