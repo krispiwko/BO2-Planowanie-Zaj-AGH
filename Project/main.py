@@ -37,7 +37,6 @@ def impl_glfw_init(window_name="Planowanie zajęć AGH", width=1280, height=720)
 
 
 class GUI(object):
-
     instance = None
 
     def __init__(self):
@@ -56,8 +55,7 @@ class GUI(object):
         self.best_val = 0
 
         style = imgui.get_style()
-        style.colors[imgui.COLOR_BUTTON] = [0.26/2, 0.59/2, 0.98/2, 1.0]
-
+        style.colors[imgui.COLOR_BUTTON] = [0.26 / 2, 0.59 / 2, 0.98 / 2, 1.0]
 
         self.opt_step = False
         self.show_preview = False
@@ -83,9 +81,12 @@ class GUI(object):
 
             imgui.next_column()
             imgui.push_item_width(180)
-            _, coeffs_students["collision_cost"] = imgui.input_float("Współczynnik Kary (Student)", coeffs_students["collision_cost"])
-            _, coeffs_lecturers["collision_cost"] = imgui.input_float("Współczynnik Kary (Prowadzący)", coeffs_lecturers["collision_cost"])
-            _, coeffs_rooms["collision_cost"] = imgui.input_float("Współczynnik Kary (Sale)", coeffs_rooms["collision_cost"])
+            _, coeffs_students["collision_cost"] = imgui.input_float("Współczynnik Kary (Student)",
+                                                                     coeffs_students["collision_cost"])
+            _, coeffs_lecturers["collision_cost"] = imgui.input_float("Współczynnik Kary (Prowadzący)",
+                                                                      coeffs_lecturers["collision_cost"])
+            _, coeffs_rooms["collision_cost"] = imgui.input_float("Współczynnik Kary (Sale)",
+                                                                  coeffs_rooms["collision_cost"])
             imgui.pop_item_width()
             imgui.pop_item_width()
             imgui.columns(1)
@@ -102,19 +103,19 @@ class GUI(object):
             io = imgui.get_io()
             display_w, display_h = io.display_size
 
-            imgui.set_next_window_position(0,0)
+            imgui.set_next_window_position(0, 0)
             imgui.set_next_window_size(display_w, display_h)
-            imgui.begin("Custom window", 
-                flags=(
-                    imgui.WINDOW_NO_TITLE_BAR |
-                    imgui.WINDOW_NO_RESIZE |
-                    imgui.WINDOW_NO_MOVE |
-                    imgui.WINDOW_NO_BACKGROUND
-                )
-            )
+            imgui.begin("Custom window",
+                        flags=(
+                                imgui.WINDOW_NO_TITLE_BAR |
+                                imgui.WINDOW_NO_RESIZE |
+                                imgui.WINDOW_NO_MOVE |
+                                imgui.WINDOW_NO_BACKGROUND
+                        )
+                        )
 
             imgui.text("Data Folder")
-            imgui.same_line()   
+            imgui.same_line()
             _, self.data_folder = imgui.input_text("", self.data_folder)
             imgui.same_line()
             if imgui.button("Zmień"):
@@ -127,7 +128,6 @@ class GUI(object):
                     read_data.set_data_folder(self.data_folder)
 
             imgui.separator()
-
 
             if not self.is_running:
                 self.print_params()
@@ -167,11 +167,12 @@ class GUI(object):
                 if imgui.button("Zakończ"):
                     self.is_running = False
 
-            if (self.algorytm_thread is not None or self.show_preview) and self.is_running and len(opt_instance.goal_log) > 0:
+            if (self.algorytm_thread is not None or self.show_preview) and self.is_running and len(
+                    opt_instance.goal_log) > 0:
                 imgui.label_text("##2", f"Temperatura: {opt_instance.T}")
                 self.best_val = opt_instance.goal_log[-1]
                 imgui.label_text("##1", f"Wartość funkcji celu: {self.best_val}")
-                    
+
             if self.is_running and self.algorytm_thread is not None and not self.algorytm_thread.is_alive():
                 self.is_running = False
                 self.algorytm_thread = None
@@ -180,7 +181,6 @@ class GUI(object):
 
                 self.calc_plan_for_student()
 
-
             if self.plan is not None:
                 if not self.is_running:
                     imgui.label_text("##1", f"Finalna wartość funkcji celu: {self.best_val}")
@@ -188,13 +188,12 @@ class GUI(object):
                 if imgui.collapsing_header("Wykres", None)[0]:
                     values = array('f', opt_instance.goal_log)
                     if len(values) > 1:
-                        imgui.plot_lines(label="Funckja celu", values=values, graph_size=(0,300))
+                        imgui.plot_lines(label="Funckja celu", values=values, graph_size=(0, 300))
                 _, new_select = imgui.combo("Category", self.category, ["Wszystko", "Studenci", "Prowadzący", "Sale"])
                 if new_select != self.category:
                     self.category = new_select
                     self.current_select = 0
                     self.calc_plan_for_student()
-
 
             if self.plan is not None and self.category != 0:
                 cur_array = []
@@ -213,15 +212,13 @@ class GUI(object):
                     self.current_select = new_select
                     self.calc_plan_for_student()
 
-
-
             if self.plan is not None and self.algorytm_thread is None:
                 # if self.unassigned_groups is not None and len(self.unassigned_groups) > 0:
                 #     text = "Nieprzydzielone grupy: "
                 #     text = text + ', '.join(self.unassigned_groups)
                 #     imgui.text(text)
                 self.render_grid()
-                    
+
             imgui.pop_font()
 
             imgui.end()
@@ -249,7 +246,7 @@ class GUI(object):
         if self.category == 0:
             return list(data[enums.DataEnum.SUBJECT_DICT].keys())
         elif self.category == 1:
-            return students[list(students.keys())[self.current_select ]]
+            return students[list(students.keys())[self.current_select]]
         elif self.category == 2:
             return lecturers[list(lecturers.keys())[self.current_select]]
         elif self.category == 3:
@@ -259,19 +256,18 @@ class GUI(object):
     def calc_plan_for_student(self):
         # dla testów
         self.best_val, _, self.marked_groups = optimize_sol.goal_function(self.plan, calc_plan.get_data())
-        self.columns_per_day = [1,1,1,1,1]
+        self.columns_per_day = [1, 1, 1, 1, 1]
         data = calc_plan.get_data()
         students = data[enums.DataEnum.STUDENT_DICT];
         subs = self.get_subject_list()
         for i in range(5):
-            subjects = [(k,v[0]) for k,v in self.plan.items() if v[1] == i and k in subs]
+            subjects = [(k, v[0]) for k, v in self.plan.items() if v[1] == i and k in subs]
             cols = self.get_max_concurrent(subjects)
             self.columns_per_day[i] = cols
             if self.columns_per_day[i] <= 0:
                 self.columns_per_day[i] = 1
-        
-        self.total_cols = sum(self.columns_per_day)
 
+        self.total_cols = sum(self.columns_per_day)
 
     def render_grid(self):
         if self.total_cols == 0:
@@ -299,7 +295,7 @@ class GUI(object):
             offset_x = sum(self.columns_per_day[0:i])
             column_size = size_x * (self.columns_per_day[i])
             text_size_x, _ = imgui.calc_text_size(dni[i])
-            imgui.set_cursor_pos([pos_x + ((column_size-text_size_x)/2) + (offset_x * size_x), pos_y])
+            imgui.set_cursor_pos([pos_x + ((column_size - text_size_x) / 2) + (offset_x * size_x), pos_y])
             imgui.text(dni[i])
 
         button_padding = 10
@@ -307,18 +303,18 @@ class GUI(object):
         pos_x, pos_y = imgui.get_cursor_pos()
         pos_y += 10
         pos_x += right_padding
-        lowest_point = (2000 - 800) 
+        lowest_point = (2000 - 800)
 
-        for i in range((int)((2100-800)/100)):
-            time = (8*60) + i * 60
+        for i in range((int)((2100 - 800) / 100)):
+            time = (8 * 60) + i * 60
             draw_list.add_line(0,
-                                pos_y + 60*i - scroll_y,
-                                display_w + right_padding + button_padding,
-                                pos_y + 60*i - scroll_y,
-                                imgui.get_color_u32_rgba(0.5, 0.5, 0.5, 0.5))
+                               pos_y + 60 * i - scroll_y,
+                               display_w + right_padding + button_padding,
+                               pos_y + 60 * i - scroll_y,
+                               imgui.get_color_u32_rgba(0.5, 0.5, 0.5, 0.5))
 
             cur_cur = imgui.get_cursor_pos()
-            imgui.set_cursor_pos([pos_x - right_padding, pos_y + 60*i + 7])
+            imgui.set_cursor_pos([pos_x - right_padding, pos_y + 60 * i + 7])
             imgui.text(f"{time // 60:02d}:00")
 
             imgui.set_cursor_pos(cur_cur)
@@ -327,7 +323,7 @@ class GUI(object):
         rooms = data[enums.DataEnum.ROOM_GROUPS]
         for i in range(5):
             latest_end = [-1] * self.columns_per_day[i]
-            subjects = [(k,v[0]) for k,v in self.plan.items() if v[1] == i and k in subs]
+            subjects = [(k, v[0]) for k, v in self.plan.items() if v[1] == i and k in subs]
             subjects.sort(key=lambda x: x[1])
             for s in subjects:
                 x_index = 0
@@ -340,17 +336,17 @@ class GUI(object):
 
                 if x_index > self.columns_per_day[i]:
                     return
-                    
-                current_x = pos_x + (sum(self.columns_per_day[0:i])+x_index)*size_x
-                imgui.set_cursor_position([current_x + (button_padding / 2), pos_y + s[1] + (button_padding/2)])
+
+                current_x = pos_x + (sum(self.columns_per_day[0:i]) + x_index) * size_x
+                imgui.set_cursor_position([current_x + (button_padding / 2), pos_y + s[1] + (button_padding / 2)])
 
                 lecturer = ""
                 room = ""
-                for k,v in lecturers.items():
+                for k, v in lecturers.items():
                     if s[0] in v:
                         lecturer = k
                         break
-                for k,v in rooms.items():
+                for k, v in rooms.items():
                     if s[0] in v:
                         room = k
                         break
@@ -358,25 +354,19 @@ class GUI(object):
                 text = s[0] + "\n" + lecturer + "\n" + room
                 style = imgui.get_style()
 
-
-                issues = [k for k,v in self.marked_groups.items() if 
-                           v[CollisionEnum.STUDENT_COST] > 0
-                        or v[CollisionEnum.LECTURER_COST] > 0
-                        or v[CollisionEnum.ROOM_COST] > 0]
+                issues = [k for k, v in self.marked_groups.items() if v > 0]
 
                 if (self.category == 0 and s[0] in issues) or (x_index > 0 and self.category != 0):
-                    style.colors[imgui.COLOR_BUTTON] = [0.9/2, 0.59/2, 0.98/2, 1.0]
-
+                    style.colors[imgui.COLOR_BUTTON] = [0.9 / 2, 0.59 / 2, 0.98 / 2, 1.0]
 
                 if self.is_running:
                     changed = opt_instance.last_changed
                     if s[0] in changed:
-                        style.colors[imgui.COLOR_BUTTON] = [0.26/2, 1.0/2, 0.26/2, 1.0]
+                        style.colors[imgui.COLOR_BUTTON] = [0.26 / 2, 1.0 / 2, 0.26 / 2, 1.0]
 
                 imgui.button(text, size_x - button_padding, subject_data[s[0]][0] - button_padding)
 
-
-                style.colors[imgui.COLOR_BUTTON] = [0.26/2, 0.59/2, 0.98/2, 1.0]
+                style.colors[imgui.COLOR_BUTTON] = [0.26 / 2, 0.59 / 2, 0.98 / 2, 1.0]
                 latest_end[x_index] = end
 
         for i in range(5):
@@ -387,8 +377,9 @@ class GUI(object):
             if i == 4:
                 offset_x = pos_x
 
-            draw_list.add_line(offset_x, text_pos_y - scroll_y, offset_x, lowest_point - scroll_y, imgui.get_color_u32_rgba(0.5, 0.5, 0.5, 0.5))
+            draw_list.add_line(offset_x, text_pos_y - scroll_y, offset_x, lowest_point - scroll_y,
+                               imgui.get_color_u32_rgba(0.5, 0.5, 0.5, 0.5))
+
 
 if __name__ == "__main__":
     gui = GUI()
-

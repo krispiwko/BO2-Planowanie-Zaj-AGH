@@ -58,9 +58,7 @@ def get_collision_costs(plan, data):
     subjects = subject_data.keys()
     collision_costs = {}
     for sub in subjects:
-        collision_costs[sub] = {CollisionEnum.STUDENT_COST: 0,
-                                CollisionEnum.LECTURER_COST: 0,
-                                CollisionEnum.ROOM_COST: 0}
+        collision_costs[sub] = 0
 
     for i in range(5):
         for s in students:
@@ -92,7 +90,7 @@ def add_collisions(plan, collision_costs, x, x_data, subject_data, day, collisio
         end = start + duration
 
         if start < latest_end:
-            collision_costs[sub[0]][collision_enum] += coeffs["collision_cost"]
+            collision_costs[sub[0]] += coeffs["collision_cost"]
 
         if end > latest_end:
             latest_end = end
@@ -100,21 +98,18 @@ def add_collisions(plan, collision_costs, x, x_data, subject_data, day, collisio
 
 def goal_function(plan, data):
 
-    group_costs = {GroupCostsEnum.COLLISION: {},
-                   GroupCostsEnum.MAX_TIME: {},
-                   GroupCostsEnum.WINDOW: {}}
+    group_costs = {GroupCostsEnum.COLLISION: {}}
 
     collision_costs = get_collision_costs(plan, data)
 
     fun_sum = sum(
         cost
-        for subject_costs in collision_costs.values()
-        for cost in subject_costs.values()
+        for cost in collision_costs.values()
     )
     group_costs[GroupCostsEnum.COLLISION] = collision_costs
 
     return fun_sum, group_costs, collision_costs
-   
+
 def try_to_change_time_and_day(plan, most_wanted, subject_data, other_groups):
     curr_time = 0
     curr_day = 0
