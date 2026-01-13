@@ -16,7 +16,7 @@ def set_data_folder(path):
     data_folder = path
 
 def get_student_dict():
-    random.seed(67)
+    # random.seed(67)
     output_temp = {}
     output = {}
 

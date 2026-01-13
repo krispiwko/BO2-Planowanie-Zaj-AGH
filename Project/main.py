@@ -4,6 +4,7 @@ import OpenGL.GL as gl
 import read_data
 import calc_plan
 import enums
+import time
 import threading
 import optimize_sol
 from imgui.integrations.glfw import GlfwRenderer
@@ -65,6 +66,8 @@ class GUI(object):
         self.plan = None
         self.algorytm_thread = None
         self.marked_groups = []
+        self.start_time = None
+        self.end_time = None
 
         io = imgui.get_io()
         self.font = io.fonts.add_font_from_file_ttf("font.ttf", 20, None, io.fonts.get_glyph_ranges_latin())
@@ -135,6 +138,7 @@ class GUI(object):
                     self.category = 0
                     self.current_select = 0
                     self.plan = calc_plan.prepare_plan()
+                    self.start_time = time.time()
 
                     self.is_running = True
                     opt_instance.setup(self.plan, calc_plan.get_data())
@@ -151,21 +155,31 @@ class GUI(object):
 
                 imgui.same_line()
                 _, self.show_preview = imgui.checkbox("Podgląd", self.show_preview)
-                if self.show_preview:
-                    imgui.same_line()
-                    _, self.opt_step = imgui.checkbox("Krok po kroku", self.opt_step)
             elif self.algorytm_thread is not None:
                 imgui.text("Algorytm działa...")
 
             elif self.show_preview:
-                if not self.opt_step or imgui.button("Krok"):
+                if imgui.button("Zakończ"):
+                    self.is_running = False
+                    self.end_time = time.time()
+                imgui.same_line()
+
+                if not self.opt_step:
+                    imgui.push_style_color(imgui.COLOR_BUTTON, 0.2, 0.2, 0.3)
+
+                if imgui.button("Krok") or not self.opt_step:
                     should_continue, self.plan = opt_instance.step()
                     self.calc_plan_for_student()
                     if not should_continue:
                         self.is_running = False
+
+                if not self.opt_step:
+                    imgui.pop_style_color(1)
+
+
+            if self.show_preview:
                 imgui.same_line()
-                if imgui.button("Zakończ"):
-                    self.is_running = False
+                _, self.opt_step = imgui.checkbox("Pauza", self.opt_step)
 
             if (self.algorytm_thread is not None or self.show_preview) and self.is_running and len(opt_instance.goal_log) > 0:
                 imgui.label_text("##2", f"Temperatura: {opt_instance.T}")
@@ -176,6 +190,7 @@ class GUI(object):
                 self.is_running = False
                 self.algorytm_thread = None
                 self.plan = opt_instance.get_result()
+                self.end_time = time.time()
                 self.best_val, _, self.marked_groups = optimize_sol.goal_function(self.plan, calc_plan.get_data())
 
                 self.calc_plan_for_student()
@@ -184,6 +199,7 @@ class GUI(object):
             if self.plan is not None:
                 if not self.is_running:
                     imgui.label_text("##1", f"Finalna wartość funkcji celu: {self.best_val}")
+                    imgui.label_text("##22", f"Czas wykonywania algorytmu: {self.end_time - self.start_time}")
 
                 if imgui.collapsing_header("Wykres", None)[0]:
                     values = array('f', opt_instance.goal_log)
