@@ -113,50 +113,6 @@ def goal_function(plan, data, only_collisions=True):
     )
     group_costs[GroupCostsEnum.COLLISION] = collision_costs
 
-    if not only_collisions:
-        for student in data[DataEnum.STUDENT_DICT].keys():
-            groups_on_day = {day_of_week: [group for group in students_data[student] if plan[group][1] == day_of_week]
-                             for day_of_week
-                             in range(0, 5)}
-            group_costs[GroupCostsEnum.COLLISION][student] = []
-            group_costs[GroupCostsEnum.MAX_TIME][student] = [[], [], [], [], []]
-            group_costs[GroupCostsEnum.WINDOW][student] = []
-            for day_of_week in range(0, 5):
-                time_sum = 0
-                for group in groups_on_day[day_of_week]:
-                    time_sum += data[DataEnum.SUBJECT_DICT][group][0]
-                if time_sum > coeffs_students["max_time_in_one_day"]:
-                    fun_sum += coeffs_students["cost_per_minute_over_limit"] * (
-                            time_sum - coeffs_students["cost_per_minute_over_limit"])
-                    group_costs[GroupCostsEnum.MAX_TIME][student][day_of_week] = groups_on_day[day_of_week]
-                chronological_groups = sorted(groups_on_day[day_of_week], key=lambda x: plan[x][0])
-                group_costs[GroupCostsEnum.WINDOW][student] = []
-                for i in range(1, len(chronological_groups)):
-                    if plan[chronological_groups[i]][0] - plan[chronological_groups[i - 1]][0] > coeffs_students[
-                        "min_window_length"]:
-                        fun_sum += coeffs_students["window_cost"]
-                        group_costs[GroupCostsEnum.WINDOW][student] += [chronological_groups[i - 1], chronological_groups[i]]
-        for lecturer in data[DataEnum.LECTURER_DICT].keys():
-            groups_on_day = {day_of_week: [group for group in data[DataEnum.LECTURER_DICT][lecturer] if
-                                           plan[group][1] == day_of_week] for day_of_week
-                             in range(0, 5)}
-            group_costs[GroupCostsEnum.MAX_TIME][lecturer] = [[], [], [], [], []]
-            group_costs[GroupCostsEnum.WINDOW][lecturer] = []
-            for day_of_week in range(0, 5):
-                time_sum = 0
-                for group in groups_on_day[day_of_week]:
-                    time_sum += data[DataEnum.SUBJECT_DICT][group][0]
-                if time_sum > coeffs_lecturers["max_time_in_one_day"]:
-                    fun_sum += coeffs_lecturers["cost_per_minute_over_limit"] * (
-                            time_sum - coeffs_lecturers["cost_per_minute_over_limit"])
-                    group_costs[GroupCostsEnum.MAX_TIME][lecturer][day_of_week] = groups_on_day[day_of_week]
-                chronological_groups = sorted(groups_on_day[day_of_week], key=lambda x: plan[x][0])
-                for i in range(1, len(chronological_groups)):
-                    if plan[chronological_groups[i]][0] - plan[chronological_groups[i - 1]][0] > coeffs_lecturers[
-                        "min_window_length"]:
-                        fun_sum += coeffs_lecturers["window_cost"]
-                        group_costs[GroupCostsEnum.WINDOW][lecturer] += [chronological_groups[i - 1], chronological_groups[i]]
-
     return fun_sum, group_costs, collision_costs
 
 def try_to_change_time_and_day(plan, most_wanted, subject_data, other_groups):
@@ -247,7 +203,7 @@ def change_plan(plan, group_costs, data):
             room_collision_nums = {r: {} for r in rooms}
             min_collision_nums = {r: 999 for r in rooms}
             for r in rooms:
-                other_groups = room_data[r]
+                other_groups = [g for g in room_data[r] if plan[g][2] == r]
                 success, collision_num = try_to_change_time_and_day(plan, most_wanted, subject_data, other_groups)
                 if collision_num is None and plan[most_wanted][2] == r:
                     changed = False
@@ -337,8 +293,8 @@ class OptimazeSol(object):
         self.iter += 1
         self.goal_log.append(self.cur_goal_sum)
 
-        if self.iter >= self.max_iter or self.T < self.T_eps:
-            return False, self.cur_plan
+        if self.iter >= self.max_iter or self.T < self.T_eps or self.cur_goal_sum == 0:
+            return False, self.best_plan
         return True, self.cur_plan
 
     def run(self):
