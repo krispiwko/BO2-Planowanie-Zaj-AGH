@@ -201,7 +201,7 @@ class OptimazeSol(object):
         self.data = None
         self.alpha = 0.999
         self.T_eps = 0.0001
-        self.max_iter = np.inf
+        self.max_iter = 10_000
 
         self.iter = 0
         self.best_plan = None
